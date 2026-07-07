@@ -1,0 +1,31 @@
+{
+  "name": "@custom-wysiwyg/react",
+  "version": "0.1.0",
+  "description": "React bindings for @custom-wysiwyg/core — SSR-safe, App Router ready",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@custom-wysiwyg/core": "*"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "license": "MIT"
+}
