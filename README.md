@@ -113,11 +113,13 @@ Markdown has no alignment syntax, so aligned blocks fall back to inline HTML (Co
 
 ## Roadmap
 
-- HTML/Markdown **import** (paste rich text, set initial content from HTML)
-- Nested block tree: lists, to-dos, quotes, code blocks, callouts
-- Tables (GFM export with column alignment)
-- Block handles: drag to reorder, hover `+` to insert
-- Collaboration-ready transaction log (commands are already pure & serializable)
+See **[docs/PLAN.md](docs/PLAN.md)** — the single source of truth for phases,
+status, architecture invariants, and the AI (gravity) integration plan. Highlights:
+
+- Phase 2: nested block tree → lists, to-dos, quotes, code blocks, callouts
+- Phase 3: tables (GFM export with column alignment)
+- Phase 4: block handles — drag to reorder, hover `+` to insert
+- Parallel: HTML/Markdown import, gravity adapter (`editor.transact` contract is ready)
 
 ## Development
 
