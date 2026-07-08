@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>custom-wysiwyg — demo</title>
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 4rem 1.5rem 6rem;
+        color: #37352f;
+        line-height: 1.5;
+      }
+      .hint {
+        color: #9b9a97;
+        font-size: 14px;
+        margin-bottom: 2rem;
+      }
+      .hint kbd {
+        background: rgba(55, 53, 47, 0.08);
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-family: inherit;
+      }
+      #editor .cwe-content {
+        min-height: 260px;
+        outline: none;
+        font-size: 16px;
+      }
+      #editor h1 { font-size: 1.9em; margin: 1em 0 0.3em; font-weight: 700; }
+      #editor h2 { font-size: 1.5em; margin: 1em 0 0.3em; font-weight: 650; }
+      #editor h3 { font-size: 1.25em; margin: 1em 0 0.3em; font-weight: 600; }
+      #editor p { margin: 0.25em 0; }
+      #editor code {
+        background: rgba(135, 131, 120, 0.15);
+        color: #eb5757;
+        border-radius: 4px;
+        padding: 1px 4px;
+        font-size: 0.85em;
+      }
+      #editor a { color: #2383e2; }
+      .exports {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 3rem;
+        border-top: 1px solid rgba(55, 53, 47, 0.15);
+        padding-top: 1.5rem;
+      }
+      .exports pre {
+        background: #f7f6f3;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        min-height: 120px;
+        margin: 4px 0 0;
+      }
+      .exports h3 {
+        margin: 0;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #9b9a97;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hint">
+      Type <kbd>/</kbd> for blocks · select text for the toolbar · markdown shortcuts:
+      <kbd># </kbd> heading, <kbd>**bold**</kbd>, <kbd>*italic*</kbd>, <kbd>`code`</kbd>
+    </div>
+    <div id="editor"></div>
+
+    <div class="exports">
+      <div>
+        <h3>Markdown</h3>
+        <pre id="out-md"></pre>
+      </div>
+      <div>
+        <h3>HTML</h3>
+        <pre id="out-html"></pre>
+      </div>
+    </div>
+
+    <script src="../../packages/core/dist/index.global.js"></script>
+    <script src="../../packages/ui/dist/index.global.js"></script>
+    <script src="../../packages/export-markdown/dist/index.global.js"></script>
+    <script src="../../packages/export-html/dist/index.global.js"></script>
+    <script>
+      const { Editor, doc: d, paragraph, heading, text } = CustomWysiwyg
+      const { BubbleMenu, SlashMenu } = CustomWysiwygUI
+      const { serializeMarkdown } = CustomWysiwygMarkdown
+      const { serializeHTML } = CustomWysiwygHTML
+
+      const initial = d(
+        heading(1, [text('Hello, editor')]),
+        paragraph([
+          text('Select some text to format it, or start a new line and type '),
+          text('/', [{ type: 'code' }]),
+          text(' to insert a block.'),
+        ]),
+        paragraph(),
+      )
+
+      const outMd = document.getElementById('out-md')
+      const outHtml = document.getElementById('out-html')
+      function renderExports(docNode) {
+        outMd.textContent = serializeMarkdown(docNode)
+        outHtml.textContent = serializeHTML(docNode)
+      }
+
+      const editor = new Editor(document.getElementById('editor'), {
+        doc: initial,
+        autofocus: true,
+        placeholder: "Type '/' for commands…",
+        onChange: (ed) => renderExports(ed.getDoc()),
+      })
+      renderExports(editor.getDoc())
+
+      new BubbleMenu(editor)
+      new SlashMenu(editor)
+    </script>
+  </body>
+</html>

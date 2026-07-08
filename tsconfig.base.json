@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "paths": {
+      "@custom-wysiwyg/core": ["./packages/core/src/index.ts"],
+      "@custom-wysiwyg/export-html": ["./packages/export-html/src/index.ts"],
+      "@custom-wysiwyg/export-markdown": ["./packages/export-markdown/src/index.ts"],
+      "@custom-wysiwyg/react": ["./packages/react/src/index.tsx"],
+      "@custom-wysiwyg/ui": ["./packages/ui/src/index.ts"]
+    }
+  }
+}
