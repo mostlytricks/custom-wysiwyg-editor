@@ -56,20 +56,56 @@ export function serializeInlineToMarkdown(spans: TextSpan[]): string {
   return spans.map(serializeSpanToMarkdown).join('')
 }
 
-export function serializeBlockToMarkdown(block: BlockNode, options: MarkdownSerializeOptions = {}): string {
+function serializeOwnLine(block: BlockNode, options: MarkdownSerializeOptions): string {
   const align = block.attrs?.align
-  const own =
-    align && align !== 'left' && options.alignedBlocks !== 'plain'
-      ? serializeBlockToHTML({ ...block, children: undefined })
-      : block.type === 'heading'
-        ? `${'#'.repeat(block.attrs.level)} ${serializeInlineToMarkdown(block.content)}`
-        : escapeBlockStart(serializeInlineToMarkdown(block.content))
-  if (!block.children || block.children.length === 0) return own
-  // Markdown has no syntax for generic block nesting (indentation belongs to
-  // list items, which Phase 2 adds); nested children flatten to siblings.
-  return [own, ...block.children.map((child) => serializeBlockToMarkdown(child, options))].join('\n\n')
+  if (align && align !== 'left' && options.alignedBlocks !== 'plain' && block.type !== 'listItem') {
+    return serializeBlockToHTML({ ...block, children: undefined })
+  }
+  if (block.type === 'heading') return `${'#'.repeat(block.attrs.level)} ${serializeInlineToMarkdown(block.content)}`
+  return escapeBlockStart(serializeInlineToMarkdown(block.content))
+}
+
+/**
+ * Serializes a sibling run of blocks. Consecutive list items join with a
+ * single newline (a tight list); everything else separates with a blank
+ * line. Ordered items number themselves 1..n per consecutive run; a list
+ * item's children indent to its content column, per CommonMark.
+ */
+function serializeBlockSequence(blocks: BlockNode[], options: MarkdownSerializeOptions, indent: string): string {
+  const parts: Array<{ text: string; list: boolean }> = []
+  let ordinal = 0
+  for (const block of blocks) {
+    if (block.type === 'listItem') {
+      ordinal = block.attrs.kind === 'ordered' ? ordinal + 1 : 0
+      const marker = block.attrs.kind === 'ordered' ? `${ordinal}. ` : '- '
+      let text = `${indent}${marker}${serializeInlineToMarkdown(block.content)}`
+      if (block.children && block.children.length > 0) {
+        text += '\n' + serializeBlockSequence(block.children, options, indent + ' '.repeat(marker.length))
+      }
+      parts.push({ text, list: true })
+    } else {
+      ordinal = 0
+      let text = indent + serializeOwnLine(block, options)
+      if (block.children && block.children.length > 0) {
+        // Markdown has no syntax for generic (non-list) block nesting;
+        // nested children flatten to siblings at the same indent.
+        text += '\n\n' + serializeBlockSequence(block.children, options, indent)
+      }
+      parts.push({ text, list: false })
+    }
+  }
+  let out = ''
+  parts.forEach((part, i) => {
+    if (i === 0) out = part.text
+    else out += (part.list && parts[i - 1]!.list ? '\n' : '\n\n') + part.text
+  })
+  return out
+}
+
+export function serializeBlockToMarkdown(block: BlockNode, options: MarkdownSerializeOptions = {}): string {
+  return serializeBlockSequence([block], options, '')
 }
 
 export function serializeMarkdown(docNode: DocNode, options: MarkdownSerializeOptions = {}): string {
-  return docNode.children.map((block) => serializeBlockToMarkdown(block, options)).join('\n\n')
+  return serializeBlockSequence(docNode.children, options, '')
 }

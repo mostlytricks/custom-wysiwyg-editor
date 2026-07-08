@@ -87,3 +87,29 @@ describe('input rules', () => {
     ])
   })
 })
+
+describe('list input rules', () => {
+  it('converts "- " into a bullet list item', () => {
+    const next = type(createEditorState(), '- point')
+    expect(next.doc.children[0]).toMatchObject({ type: 'listItem', attrs: { kind: 'bullet' } })
+    expect(blockText(next.doc.children[0]!)).toBe('point')
+  })
+
+  it('converts "* " into a bullet list item', () => {
+    const next = type(createEditorState(), '* point')
+    expect(next.doc.children[0]).toMatchObject({ type: 'listItem', attrs: { kind: 'bullet' } })
+  })
+
+  it('converts "1. " into an ordered list item', () => {
+    const next = type(createEditorState(), '1. first')
+    expect(next.doc.children[0]).toMatchObject({ type: 'listItem', attrs: { kind: 'ordered' } })
+    expect(blockText(next.doc.children[0]!)).toBe('first')
+  })
+
+  it('does not fire inside a heading or mid-text', () => {
+    const inHeading = type(createEditorState(doc(heading(2))), '- ')
+    expect(inHeading.doc.children[0]!.type).toBe('heading')
+    const mid = type(createEditorState(doc(paragraph([text('a')])), ), 'x')
+    expect(mid.doc.children[0]!.type).toBe('paragraph')
+  })
+})

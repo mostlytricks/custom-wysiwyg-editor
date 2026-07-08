@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { doc, heading, paragraph, text } from '@custom-wysiwyg/core'
+import { doc, heading, listItem, paragraph, text } from '@custom-wysiwyg/core'
 import { serializeHTML } from '@custom-wysiwyg/export-html'
 
 describe('serializeHTML', () => {
@@ -32,5 +32,27 @@ describe('serializeHTML', () => {
 
   it('renders an empty paragraph as an empty tag', () => {
     expect(serializeHTML(doc(paragraph()))).toBe('<p></p>')
+  })
+})
+
+describe('lists', () => {
+  it('groups consecutive items of one kind into a single list', () => {
+    const out = serializeHTML(doc(listItem('bullet', [text('one')]), listItem('bullet', [text('two')])))
+    expect(out).toBe('<ul>\n<li>one</li>\n<li>two</li>\n</ul>')
+  })
+
+  it('splits lists when the kind changes', () => {
+    const out = serializeHTML(doc(listItem('bullet', [text('b')]), listItem('ordered', [text('o')])))
+    expect(out).toBe('<ul>\n<li>b</li>\n</ul>\n<ol>\n<li>o</li>\n</ol>')
+  })
+
+  it('nests child lists inside the li', () => {
+    const out = serializeHTML(doc(listItem('bullet', [text('parent')], undefined, [listItem('bullet', [text('kid')])])))
+    expect(out).toBe('<ul>\n<li>parent\n<ul>\n<li>kid</li>\n</ul>\n</li>\n</ul>')
+  })
+
+  it('keeps alignment styles on list items', () => {
+    const out = serializeHTML(doc(listItem('bullet', [text('c')], { align: 'center' })))
+    expect(out).toBe('<ul>\n<li style="text-align: center">c</li>\n</ul>')
   })
 })

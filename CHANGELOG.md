@@ -12,6 +12,18 @@ custom-wysiwyg-editor` from the workspace).
 
 ## [Unreleased]
 
+### Added
+- **Bulleted & numbered lists** (Phase 2). New `listItem` block type
+  (`attrs.kind: 'bullet' | 'ordered'`, Notion-style: no wrapper list node — a list is a
+  run of same-kind siblings; nesting is the block tree). Commands
+  `setList`/`toggleList`/`indentListItem`/`outdentListItem` (+ on `editor.commands`);
+  Tab/Shift+Tab indent/outdent; input rules `- `, `* `, `1. `; Enter on an empty item
+  and Backspace at item start exit the list (outdent when nested, else paragraph);
+  slash-menu items "Bulleted list"/"Numbered list". Rendering: `data-list` +
+  render-time `data-ordinal` with CSS-only markers. Exporters: HTML groups runs into
+  `<ul>/<ol>` with nested lists inside `<li>`; Markdown emits tight lists with
+  CommonMark content-column indentation and per-run `1..n` numbering.
+
 ### Changed
 - **BREAKING — recursive block tree (Phase 2 groundwork).** The document model is now a
   tree: a block's inline spans moved from `children` to **`content`**, and `children`

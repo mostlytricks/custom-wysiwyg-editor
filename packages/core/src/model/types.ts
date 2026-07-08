@@ -49,6 +49,13 @@ export interface HeadingAttrs {
   align?: Alignment
 }
 
+export type ListKind = 'bullet' | 'ordered'
+
+export interface ListItemAttrs {
+  kind: ListKind
+  align?: Alignment
+}
+
 export interface ParagraphNode {
   type: 'paragraph'
   attrs?: ParagraphAttrs
@@ -63,7 +70,20 @@ export interface HeadingNode {
   children?: BlockNode[]
 }
 
-export type BlockNode = ParagraphNode | HeadingNode
+/**
+ * One list item, Notion-style: there is no wrapper "list" node — a list is a
+ * run of consecutive siblings of the same kind, and nesting is the ordinary
+ * block tree (`children`). Exporters group runs into <ul>/<ol> / indented
+ * Markdown.
+ */
+export interface ListItemNode {
+  type: 'listItem'
+  attrs: ListItemAttrs
+  content: TextSpan[]
+  children?: BlockNode[]
+}
+
+export type BlockNode = ParagraphNode | HeadingNode | ListItemNode
 export type BlockType = BlockNode['type']
 
 export interface DocNode {
@@ -97,6 +117,20 @@ export function heading(
   return {
     type: 'heading',
     attrs: { level, ...attrs },
+    content,
+    ...(children && children.length > 0 ? { children } : {}),
+  }
+}
+
+export function listItem(
+  kind: ListKind,
+  content: TextSpan[] = [],
+  attrs?: Omit<ListItemAttrs, 'kind'>,
+  children?: BlockNode[],
+): ListItemNode {
+  return {
+    type: 'listItem',
+    attrs: { kind, ...attrs },
     content,
     ...(children && children.length > 0 ? { children } : {}),
   }

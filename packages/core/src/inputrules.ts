@@ -1,4 +1,4 @@
-import type { HeadingAttrs, HeadingLevel, Mark } from './model/types'
+import type { HeadingAttrs, HeadingLevel, ListItemAttrs, ListKind, Mark } from './model/types'
 import { collapsedSelection, selectionIsCollapsed } from './model/position'
 import { blockText } from './model/spans'
 import { blockAt, replaceBlockAt } from './model/path'
@@ -26,6 +26,8 @@ const MARK_RULES: MarkRule[] = [
 ]
 
 const HEADING_PREFIX = /^(#{1,3})$/
+const BULLET_PREFIX = /^[-*]$/
+const ORDERED_PREFIX = /^\d{1,9}\.$/
 
 export function runInputRules(state: EditorState, insertedText: string): EditorState | null {
   if (!selectionIsCollapsed(state.selection)) return null
@@ -34,9 +36,37 @@ export function runInputRules(state: EditorState, insertedText: string): EditorS
   if (!block) return null
   const textBefore = blockText(block).slice(0, head.offset)
 
-  // Block rule: "# ", "## ", "### " at the start of a paragraph.
+  // Block rules: "# " headings, "- "/"* " bullets, "1. " ordered lists —
+  // all triggered by the space, at the start of a paragraph.
   if (insertedText === ' ' && block.type === 'paragraph') {
-    const match = HEADING_PREFIX.exec(textBefore.slice(0, -1))
+    const prefix = textBefore.slice(0, -1)
+    const listKind: ListKind | null = BULLET_PREFIX.test(prefix)
+      ? 'bullet'
+      : ORDERED_PREFIX.test(prefix)
+        ? 'ordered'
+        : null
+    if (listKind) {
+      const withoutPrefix = deleteRangeInDoc(
+        state.doc,
+        { path: head.path, offset: 0 },
+        { path: head.path, offset: textBefore.length },
+      )
+      const target = blockAt(withoutPrefix, head.path)
+      if (!target) return null
+      const attrs: ListItemAttrs = { kind: listKind, ...(target.attrs?.align ? { align: target.attrs.align } : {}) }
+      const docNode = replaceBlockAt(withoutPrefix, head.path, (current) => ({
+        type: 'listItem',
+        attrs,
+        content: current.content,
+        ...(current.children ? { children: current.children } : {}),
+      }))
+      return {
+        doc: docNode,
+        selection: collapsedSelection({ path: head.path, offset: 0 }),
+        storedMarks: null,
+      }
+    }
+    const match = HEADING_PREFIX.exec(prefix)
     if (match && match[1]) {
       const level = match[1].length as HeadingLevel
       const withoutPrefix = deleteRangeInDoc(

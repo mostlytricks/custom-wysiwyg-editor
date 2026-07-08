@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { doc, heading, paragraph, text } from '@custom-wysiwyg/core'
+import { doc, heading, listItem, paragraph, text } from '@custom-wysiwyg/core'
 import { serializeMarkdown } from '@custom-wysiwyg/export-markdown'
 
 describe('serializeMarkdown', () => {
@@ -57,5 +57,39 @@ describe('serializeMarkdown', () => {
       alignedBlocks: 'plain',
     })
     expect(out).toBe('centered')
+  })
+})
+
+describe('lists', () => {
+  it('serializes bullet lists as a tight list', () => {
+    const out = serializeMarkdown(doc(listItem('bullet', [text('one')]), listItem('bullet', [text('two')])))
+    expect(out).toBe('- one\n- two')
+  })
+
+  it('numbers consecutive ordered items and resets after a break', () => {
+    const out = serializeMarkdown(
+      doc(
+        listItem('ordered', [text('a')]),
+        listItem('ordered', [text('b')]),
+        paragraph([text('gap')]),
+        listItem('ordered', [text('c')]),
+      ),
+    )
+    expect(out).toBe('1. a\n2. b\n\ngap\n\n1. c')
+  })
+
+  it('indents nested items to the parent content column', () => {
+    const out = serializeMarkdown(
+      doc(
+        listItem('bullet', [text('parent')], undefined, [listItem('bullet', [text('kid')])]),
+        listItem('ordered', [text('num')], undefined, [listItem('ordered', [text('sub')])]),
+      ),
+    )
+    expect(out).toBe('- parent\n  - kid\n1. num\n   1. sub')
+  })
+
+  it('separates lists from surrounding blocks with blank lines', () => {
+    const out = serializeMarkdown(doc(paragraph([text('before')]), listItem('bullet', [text('item')])))
+    expect(out).toBe('before\n\n- item')
   })
 })

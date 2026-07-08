@@ -64,6 +64,10 @@ All asserted in `packages/core/test/commands.test.ts`:
 - given a collapsed selection with stored marks, when the next insert happens → the stored marks apply `[test:toggleMark]`
 - given a range spanning tree depths, when text is inserted or deleted → the endpoint blocks merge and surviving descendants hoist into the removed block's slot `[test:block tree]`
 - given a caret at the start of a first child block, when `deleteBackward` runs → the child's text merges into its parent (and an *empty* parent is replaced by its hoisted children) `[test:block tree]`
+- given a list item, when it indents → it becomes the last child of its previous sibling list item (with its own children); no previous list-item sibling → no-op `[test:lists]`
+- given a nested list item with following siblings, when it outdents → it becomes the next sibling of its parent and adopts the following siblings as children (document order preserved) `[test:lists]`
+- given an empty list item, when Enter runs → the item exits the list: outdent when nested, paragraph at top level; same on Backspace at item start (marker strips before any merge) `[test:lists]`
+- given consecutive ordered siblings, when serialized → they number 1..n per run; a bullet or non-list block resets the count (`[test:lists]` in export tests; view mirrors via data-ordinal)
 
 ## Gotchas
 
@@ -71,8 +75,11 @@ All asserted in `packages/core/test/commands.test.ts`:
   right after Shift+Home) — happy-dom never shows this; only the browser smoke does.
 - Cross-depth deletes hoist surviving descendants into the removed block's slot
   (document order preserved); `splitBlock` moves nested children to the *new* block.
-  These are provisional Notion-ish choices — revisit when list types land, and add
-  `[test:…]` rows to the Behavioral Contract for whichever semantics survive.
+  Lists landed on these semantics unchanged and pinned the list-specific behaviors
+  in the Behavioral Contract; the generic hoisting rows still say `[test:block tree]`.
+- List markers are pure CSS (`::before` on `data-list`/`data-ordinal`) — a marker must
+  never add DOM text nodes, or selection offset mapping breaks. Ordered ordinals are
+  computed at render time per sibling run (`renderBlocks`), not stored in the model.
 - Rendered blocks carry `data-path` ("0", "0.1"); a block's nested children render
   *outside* its data-path element (sibling `.cwe-children` wrapper), so collecting a
   block element's text nodes never leaks child-block text. Don't render child blocks

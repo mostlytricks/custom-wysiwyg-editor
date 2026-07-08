@@ -1,4 +1,14 @@
-import type { Alignment, BlockNode, DocNode, HeadingAttrs, HeadingLevel, Mark, MarkType } from './model/types'
+import type {
+  Alignment,
+  BlockNode,
+  DocNode,
+  HeadingAttrs,
+  HeadingLevel,
+  ListItemAttrs,
+  ListKind,
+  Mark,
+  MarkType,
+} from './model/types'
 import type { Position, SelectionRange } from './model/position'
 import { clampPosition, collapsedSelection, comparePositions, orderedRange } from './model/position'
 import { blockLength, marksAtOffset, marksEqual, normalizeSpans, sliceSpans } from './model/spans'
@@ -11,11 +21,13 @@ import {
   insertBlockAfter,
   isAncestorOrSelf,
   lastPath,
+  parentPath,
   pathsEqual,
   previousPath,
   nextPath,
   removeBlockAt,
   replaceBlockAt,
+  siblingAfter,
   spliceBlocksAt,
 } from './model/path'
 import type { EditorState } from './state'
@@ -126,6 +138,12 @@ export function deleteBackward(state: EditorState): EditorState | null {
     const pos = { path: from.path, offset: from.offset - 1 }
     return { doc: deleteRangeInDoc(state.doc, pos, from), selection: collapsedSelection(pos), storedMarks: null }
   }
+  const atStartBlock = blockAt(state.doc, from.path)
+  if (atStartBlock?.type === 'listItem') {
+    // Backspace at the start of a list item removes the marker before any
+    // merging: outdent when nested, otherwise convert to a paragraph.
+    return outdentListItem(state) ?? { ...setParagraph(state), storedMarks: null }
+  }
   const prevPath = previousPath(state.doc, from.path)
   if (!prevPath) return null
   const prev = blockAt(state.doc, prevPath)
@@ -183,6 +201,11 @@ export function splitBlock(state: EditorState): EditorState {
   const block = blockAt(docNode, from.path)
   if (!block) return state
   const len = blockLength(block)
+  if (block.type === 'listItem' && len === 0 && comparePositions(from, to) === 0) {
+    // Enter on an empty list item exits the list: outdent when nested,
+    // otherwise turn the item into a paragraph (Notion behavior).
+    return outdentListItem(state) ?? setParagraph(state)
+  }
   const before = normalizeSpans(sliceSpans(block.content, 0, from.offset))
   const after = normalizeSpans(sliceSpans(block.content, from.offset, len))
   const align = block.attrs?.align
@@ -305,10 +328,102 @@ export function setAlign(state: EditorState, align: Alignment): EditorState {
       const attrs: HeadingAttrs = { level: block.attrs.level, ...(align !== 'left' ? { align } : {}) }
       return { ...block, attrs }
     }
+    if (block.type === 'listItem') {
+      const attrs: ListItemAttrs = { kind: block.attrs.kind, ...(align !== 'left' ? { align } : {}) }
+      return { ...block, attrs }
+    }
     if (align !== 'left') return { ...block, attrs: { align } }
     const { attrs: _attrs, ...rest } = block
     return rest
   })
+}
+
+/** Converts the selected blocks to list items of `kind` (idempotent). */
+export function setList(state: EditorState, kind: ListKind): EditorState {
+  return mapSelectedBlocks(state, (block) => {
+    const attrs: ListItemAttrs = { kind, ...(block.attrs?.align ? { align: block.attrs.align } : {}) }
+    return withChildren({ type: 'listItem', attrs, content: block.content }, block.children)
+  })
+}
+
+/**
+ * Toggles the selected blocks between list items of `kind` and paragraphs:
+ * converts to `kind` unless every selected block already is one.
+ */
+export function toggleList(state: EditorState, kind: ListKind): EditorState {
+  const { from, to } = orderedRange(state.doc, state.selection)
+  let allKind = true
+  for (const { block } of blocksInRange(state.doc, from.path, to.path)) {
+    if (!(block.type === 'listItem' && block.attrs.kind === kind)) {
+      allKind = false
+      break
+    }
+  }
+  return allKind ? setParagraph(state) : setList(state, kind)
+}
+
+/**
+ * Indents the caret's list item one level (Tab): the item — with its own
+ * children — becomes the last child of its previous sibling list item.
+ * Applies only with the selection inside a single list item that has a list
+ * item as its previous sibling.
+ */
+export function indentListItem(state: EditorState): EditorState | null {
+  const { from, to } = orderedRange(state.doc, state.selection)
+  if (!pathsEqual(from.path, to.path)) return null
+  const path = from.path
+  const block = blockAt(state.doc, path)
+  if (!block || block.type !== 'listItem') return null
+  const index = path[path.length - 1]!
+  if (index === 0) return null
+  const prevSiblingPath = [...path.slice(0, -1), index - 1]
+  const prevSibling = blockAt(state.doc, prevSiblingPath)
+  if (!prevSibling || prevSibling.type !== 'listItem') return null
+  const newPath = [...prevSiblingPath, prevSibling.children?.length ?? 0]
+  let docNode = removeBlockAt(state.doc, path)
+  docNode = replaceBlockAt(docNode, prevSiblingPath, (target) =>
+    withChildren(target, [...(target.children ?? []), block]),
+  )
+  return {
+    doc: docNode,
+    selection: {
+      anchor: { path: newPath, offset: state.selection.anchor.offset },
+      head: { path: newPath, offset: state.selection.head.offset },
+    },
+    storedMarks: state.storedMarks,
+  }
+}
+
+/**
+ * Outdents the caret's list item one level (Shift+Tab): the item becomes the
+ * next sibling of its parent, and its former following siblings — which must
+ * stay after it in document order — become its children.
+ */
+export function outdentListItem(state: EditorState): EditorState | null {
+  const { from, to } = orderedRange(state.doc, state.selection)
+  if (!pathsEqual(from.path, to.path)) return null
+  const path = from.path
+  if (path.length < 2) return null
+  const block = blockAt(state.doc, path)
+  if (!block || block.type !== 'listItem') return null
+  const parent = parentPath(path)
+  const parentBlock = blockAt(state.doc, parent)
+  if (!parentBlock) return null
+  const index = path[path.length - 1]!
+  const siblings = parentBlock.children ?? []
+  const following = siblings.slice(index + 1)
+  const moved = withChildren(block, [...(block.children ?? []), ...following])
+  let docNode = replaceBlockAt(state.doc, parent, (target) => withChildren(target, siblings.slice(0, index)))
+  docNode = insertBlockAfter(docNode, parent, moved)
+  const newPath = siblingAfter(parent)
+  return {
+    doc: docNode,
+    selection: {
+      anchor: { path: newPath, offset: state.selection.anchor.offset },
+      head: { path: newPath, offset: state.selection.head.offset },
+    },
+    storedMarks: state.storedMarks,
+  }
 }
 
 /** Moves the selection without touching the document. */

@@ -7,6 +7,25 @@ const CSS = `
   color: #9b9a97;
   pointer-events: none;
 }
+.cwe-content .cwe-list-item {
+  position: relative;
+  padding-left: 24px;
+}
+.cwe-content .cwe-list-item::before {
+  position: absolute;
+  left: 4px;
+  pointer-events: none;
+}
+.cwe-content .cwe-list-item[data-list="bullet"]::before {
+  content: "•";
+}
+.cwe-content .cwe-list-item[data-list="ordered"]::before {
+  content: attr(data-ordinal) ".";
+  font-variant-numeric: tabular-nums;
+}
+.cwe-content .cwe-children {
+  margin-left: 24px;
+}
 .cwe-bubble, .cwe-slash {
   position: fixed;
   z-index: 9999;

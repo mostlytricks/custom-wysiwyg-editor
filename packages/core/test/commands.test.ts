@@ -7,14 +7,18 @@ import {
   deleteForward,
   doc,
   heading,
+  indentListItem,
   insertLines,
   insertText,
+  listItem,
+  outdentListItem,
   paragraph,
   selectAll,
   setAlign,
   setHeading,
   splitBlock,
   text,
+  toggleList,
   toggleMark,
   type EditorState,
   type SelectionRange,
@@ -267,5 +271,100 @@ describe('block tree', () => {
     expect(blockAt(next.doc, [0, 0])!.type).toBe('heading')
     expect(blockAt(next.doc, [1])!.type).toBe('paragraph')
     expect(blockText(blockAt(next.doc, [0, 1])!)).toBe('child two')
+  })
+})
+
+describe('lists', () => {
+  const bullets = () =>
+    doc(listItem('bullet', [text('one')]), listItem('bullet', [text('two')]), listItem('bullet', [text('three')]))
+
+  it('toggleList converts paragraphs to list items and back', () => {
+    const s = state(doc(paragraph([text('a')]), paragraph([text('b')])), range([[0], 0], [[1], 1]))
+    const listed = toggleList(s, 'bullet')
+    expect(listed.doc.children.map((b) => b.type)).toEqual(['listItem', 'listItem'])
+    const back = toggleList(listed, 'bullet')
+    expect(back.doc.children.map((b) => b.type)).toEqual(['paragraph', 'paragraph'])
+  })
+
+  it('toggleList converts a mixed range to the requested kind', () => {
+    const s = state(doc(listItem('bullet', [text('a')]), paragraph([text('b')])), range([[0], 0], [[1], 1]))
+    const next = toggleList(s, 'ordered')
+    expect(next.doc.children.every((b) => b.type === 'listItem' && b.attrs.kind === 'ordered')).toBe(true)
+  })
+
+  it('indent makes the item the last child of its previous sibling', () => {
+    const s = state(bullets(), caret([1], 2))
+    const next = indentListItem(s)!
+    expect(next).not.toBeNull()
+    expect(blockText(blockAt(next.doc, [0, 0])!)).toBe('two')
+    expect(next.selection.head).toEqual({ path: [0, 0], offset: 2 })
+    expect(next.doc.children).toHaveLength(2)
+  })
+
+  it('indent does not apply on a first item or outside lists', () => {
+    expect(indentListItem(state(bullets(), caret([0], 0)))).toBeNull()
+    expect(indentListItem(state(doc(paragraph([text('p')]), paragraph([text('q')])), caret([1], 0)))).toBeNull()
+  })
+
+  it('indent keeps the moved item own children', () => {
+    const d = doc(listItem('bullet', [text('one')]), listItem('bullet', [text('two')], undefined, [listItem('bullet', [text('deep')])]))
+    const next = indentListItem(state(d, caret([1], 0)))!
+    expect(blockText(blockAt(next.doc, [0, 0])!)).toBe('two')
+    expect(blockText(blockAt(next.doc, [0, 0, 0])!)).toBe('deep')
+  })
+
+  it('outdent moves the item after its parent and adopts following siblings', () => {
+    const d = doc(
+      listItem('bullet', [text('parent')], undefined, [
+        listItem('bullet', [text('first')]),
+        listItem('bullet', [text('second')]),
+        listItem('bullet', [text('third')]),
+      ]),
+    )
+    const next = outdentListItem(state(d, caret([0, 1], 3)))!
+    expect(blockText(blockAt(next.doc, [1])!)).toBe('second')
+    expect(next.selection.head).toEqual({ path: [1], offset: 3 })
+    // "third" must stay after "second" in document order → it became a child.
+    expect(blockText(blockAt(next.doc, [1, 0])!)).toBe('third')
+    expect(blockAt(next.doc, [0])!.children).toHaveLength(1)
+  })
+
+  it('outdent does not apply at the top level', () => {
+    expect(outdentListItem(state(bullets(), caret([1], 0)))).toBeNull()
+  })
+
+  it('Enter mid-item splits into two list items', () => {
+    const s = state(bullets(), caret([1], 1))
+    const next = splitBlock(s)
+    expect(next.doc.children.map((b) => b.type)).toEqual(['listItem', 'listItem', 'listItem', 'listItem'])
+    expect(blockText(next.doc.children[1]!)).toBe('t')
+    expect(blockText(next.doc.children[2]!)).toBe('wo')
+  })
+
+  it('Enter on an empty top-level item exits the list into a paragraph', () => {
+    const d = doc(listItem('bullet', [text('one')]), listItem('bullet'))
+    const next = splitBlock(state(d, caret([1], 0)))
+    expect(next.doc.children[1]!.type).toBe('paragraph')
+    expect(next.doc.children).toHaveLength(2)
+  })
+
+  it('Enter on an empty nested item outdents instead', () => {
+    const d = doc(listItem('bullet', [text('parent')], undefined, [listItem('bullet')]))
+    const next = splitBlock(state(d, caret([0, 0], 0)))
+    expect(next.doc.children).toHaveLength(2)
+    expect(next.doc.children[1]!.type).toBe('listItem')
+  })
+
+  it('Backspace at the start of a top-level item strips the marker', () => {
+    const next = deleteBackward(state(bullets(), caret([1], 0)))!
+    expect(next.doc.children[1]!.type).toBe('paragraph')
+    expect(blockText(next.doc.children[1]!)).toBe('two')
+  })
+
+  it('Backspace at the start of a nested item outdents', () => {
+    const d = doc(listItem('bullet', [text('parent')], undefined, [listItem('bullet', [text('kid')])]))
+    const next = deleteBackward(state(d, caret([0, 0], 0)))!
+    expect(next.doc.children).toHaveLength(2)
+    expect(blockText(next.doc.children[1]!)).toBe('kid')
   })
 })

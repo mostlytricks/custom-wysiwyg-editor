@@ -1,11 +1,12 @@
-import type { Alignment, DocNode, HeadingLevel, Mark, MarkType } from './model/types'
+import type { Alignment, DocNode, HeadingLevel, ListKind, Mark, MarkType } from './model/types'
 import type { Position, SelectionRange } from './model/position'
 import { selectionsEqual } from './model/position'
 import * as commands from './commands'
 import { runInputRules } from './inputrules'
+import { blockAt } from './model/path'
 import type { EditorState } from './state'
 import { createEditorState } from './state'
-import { renderBlock } from './view/render'
+import { renderBlocks } from './view/render'
 import { applyDOMSelection, readDOMSelection } from './view/selection'
 
 export interface EditorOptions {
@@ -178,6 +179,10 @@ export class Editor {
     setLink: (href: string): boolean => this.apply(commands.toggleMark(this.state, { type: 'link', attrs: { href } })),
     setHeading: (level: HeadingLevel): boolean => this.apply(commands.setHeading(this.state, level)),
     setParagraph: (): boolean => this.apply(commands.setParagraph(this.state)),
+    setList: (kind: ListKind): boolean => this.apply(commands.setList(this.state, kind)),
+    toggleList: (kind: ListKind): boolean => this.apply(commands.toggleList(this.state, kind)),
+    indentListItem: (): boolean => this.apply(commands.indentListItem(this.state)),
+    outdentListItem: (): boolean => this.apply(commands.outdentListItem(this.state)),
     setAlign: (align: Alignment): boolean => this.apply(commands.setAlign(this.state, align)),
     selectAll: (): boolean => this.apply(commands.selectAll(this.state)),
     setSelection: (selection: SelectionRange): boolean => this.apply(commands.setSelection(this.state, selection)),
@@ -234,7 +239,7 @@ export class Editor {
 
   private renderView(): void {
     const documentRef = this.dom.ownerDocument
-    this.dom.replaceChildren(...this.state.doc.children.map((block, i) => renderBlock(documentRef, block, [i])))
+    this.dom.replaceChildren(...renderBlocks(documentRef, this.state.doc.children, []))
     const first = this.state.doc.children[0]
     const isEmpty =
       this.state.doc.children.length === 1 &&
@@ -339,8 +344,21 @@ export class Editor {
   }
 
   private onKeyDown = (event: KeyboardEvent): void => {
+    if (this.composing) return
+    if (event.key === 'Tab' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      this.syncSelectionFromDOM()
+      const block = blockAt(this.state.doc, this.state.selection.head.path)
+      if (block?.type === 'listItem') {
+        // Swallow Tab inside lists even when the indent doesn't apply —
+        // moving focus out of the editor mid-list would be worse.
+        event.preventDefault()
+        if (event.shiftKey) this.commands.outdentListItem()
+        else this.commands.indentListItem()
+      }
+      return
+    }
     const mod = event.metaKey || event.ctrlKey
-    if (!mod || this.composing) return
+    if (!mod) return
     this.syncSelectionFromDOM()
     const key = event.key.toLowerCase()
     if (key === 'b') {

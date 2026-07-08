@@ -17,7 +17,7 @@ editing experience**, with a clean **agent-integration seam** so external agents
 
 | Domain | Status | One line |
 |---|---|---|
-| `core` | ◑ | engine (model/commands/view/input rules) — **recursive block tree + path positions shipped**; next: lists + new block types on top of it. `core/SPEC.md` |
+| `core` | ◑ | engine (model/commands/view/input rules) — **tree + paths + bulleted/numbered lists shipped**; next: todos, quotes, code blocks, dividers, callouts. `core/SPEC.md` |
 | `integration` | ○ | the agent-adapter seam — editor-side contract shipped; adapter + round-trip smoke not started. `integration/PLAN.md` |
 | ui | ✓ | framework-free widgets (BubbleMenu, SlashMenu) — no folder yet; mint when it grows rules |
 | react | ✓ | bindings (`useEditor`/`<Editor>`, SSR-safe) — no folder yet |
@@ -48,7 +48,7 @@ Rules to respect while doing it: `core/SPEC.md`.
 
 - [x] Migrate model from flat block list to a **recursive block tree**; positions become paths (`{ path: number[], offset }`) — inline spans now `content`, nested blocks `children`
 - [x] Update all commands + selection mapping (`data-path`) + both exporters for the tree (exporter nesting semantics provisional until list types define them)
-- [ ] Bulleted / numbered lists (Tab/Shift+Tab indent, input rules `- `, `1. `)
+- [x] Bulleted / numbered lists (`listItem` blocks with `kind`, Tab/Shift+Tab indent via tree nesting, input rules `- `/`* `/`1. `, Enter/Backspace exit-and-outdent, slash items, `<ul>/<ol>` grouping in HTML, tight indented Markdown lists)
 - [ ] To-do blocks (checkbox), blockquotes, code blocks, dividers, callouts
 - [ ] Extend slash-menu items + exporters for each new type
 

@@ -10,13 +10,16 @@ export type {
   HeadingNode,
   ItalicMark,
   LinkMark,
+  ListItemAttrs,
+  ListItemNode,
+  ListKind,
   Mark,
   MarkType,
   ParagraphAttrs,
   ParagraphNode,
   TextSpan,
 } from './model/types'
-export { doc, emptyDoc, heading, paragraph, text } from './model/types'
+export { doc, emptyDoc, heading, listItem, paragraph, text } from './model/types'
 
 export type { Position, SelectionRange } from './model/position'
 export {
@@ -71,22 +74,26 @@ export {
   deleteForward,
   deleteRange,
   deleteRangeInDoc,
+  indentListItem,
   insertLines,
   insertText,
   insertTextInDoc,
   isMarkActive,
+  outdentListItem,
   selectAll,
   setAlign,
   setHeading,
+  setList,
   setParagraph,
   setSelection,
   splitBlock,
+  toggleList,
   toggleMark,
 } from './commands'
 
 export { runInputRules } from './inputrules'
 
-export { attrToPath, pathToAttr, renderBlock, renderSpan } from './view/render'
+export { attrToPath, pathToAttr, renderBlock, renderBlocks, renderSpan } from './view/render'
 export { applyDOMSelection, domPointToPosition, positionToDOMPoint, readDOMSelection } from './view/selection'
 
 export type { EditorEventType, EditorOptions } from './editor'

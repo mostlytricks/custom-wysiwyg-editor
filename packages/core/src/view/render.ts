@@ -10,6 +10,9 @@ import { getMark, hasMarkType } from '../model/spans'
  * Each block's own text lives in an element tagged data-path ("0", "0.1", …).
  * Nested children render *outside* that element (in a sibling wrapper), so
  * collecting a block's text nodes never leaks a child block's text.
+ *
+ * List markers are pure CSS (::before on data-list/data-ordinal attributes) —
+ * they must never add text nodes, or selection offset mapping would break.
  */
 
 function wrap(documentRef: Document, tag: string, child: Node): HTMLElement {
@@ -42,10 +45,20 @@ export function attrToPath(attr: string): BlockPath | null {
   return attr.split('.').map(Number)
 }
 
-export function renderBlock(documentRef: Document, block: BlockNode, path: BlockPath): HTMLElement {
-  const tag = block.type === 'heading' ? `h${block.attrs.level}` : 'p'
-  const el = documentRef.createElement(tag)
+function blockTag(block: BlockNode): string {
+  if (block.type === 'heading') return `h${block.attrs.level}`
+  if (block.type === 'listItem') return 'div'
+  return 'p'
+}
+
+export function renderBlock(documentRef: Document, block: BlockNode, path: BlockPath, ordinal?: number): HTMLElement {
+  const el = documentRef.createElement(blockTag(block))
   el.setAttribute('data-path', pathToAttr(path))
+  if (block.type === 'listItem') {
+    el.className = 'cwe-list-item'
+    el.setAttribute('data-list', block.attrs.kind)
+    if (block.attrs.kind === 'ordered') el.setAttribute('data-ordinal', String(ordinal ?? 1))
+  }
   const align = block.attrs?.align
   if (align && align !== 'left') el.style.textAlign = align
   if (block.content.length === 0) {
@@ -61,9 +74,19 @@ export function renderBlock(documentRef: Document, block: BlockNode, path: Block
   group.appendChild(el)
   const childrenEl = documentRef.createElement('div')
   childrenEl.className = 'cwe-children'
-  block.children.forEach((child, i) => {
-    childrenEl.appendChild(renderBlock(documentRef, child, [...path, i]))
-  })
+  for (const child of renderBlocks(documentRef, block.children, path)) childrenEl.appendChild(child)
   group.appendChild(childrenEl)
   return group
+}
+
+/**
+ * Renders a sibling run of blocks, numbering consecutive ordered list items
+ * (a bullet item or any other block type resets the count).
+ */
+export function renderBlocks(documentRef: Document, blocks: BlockNode[], prefix: BlockPath): HTMLElement[] {
+  let ordinal = 0
+  return blocks.map((block, i) => {
+    ordinal = block.type === 'listItem' && block.attrs.kind === 'ordered' ? ordinal + 1 : 0
+    return renderBlock(documentRef, block, [...prefix, i], ordinal)
+  })
 }
