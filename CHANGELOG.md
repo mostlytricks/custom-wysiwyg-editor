@@ -12,6 +12,10 @@ custom-wysiwyg-editor` from the workspace).
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [0.1.0] - 2026-07-08
+
 ### Added
 - **Phase 0 — walking skeleton.** Monorepo (`core` / `ui` / `react` / `export-markdown` /
   `export-html`); JSON document model (paragraphs, headings h1–h3, bold/italic/code/link
