@@ -113,8 +113,84 @@ export interface ListItemNode {
   children?: BlockNode[]
 }
 
-export type BlockNode = ParagraphNode | HeadingNode | ListItemNode
+export interface TodoAttrs {
+  checked: boolean
+  align?: Alignment
+}
+
+/** A checkable to-do line. Nesting via `children`, like list items. */
+export interface TodoNode {
+  type: 'todo'
+  attrs: TodoAttrs
+  content: TextSpan[]
+  children?: BlockNode[]
+}
+
+export interface QuoteAttrs {
+  align?: Alignment
+}
+
+export interface QuoteNode {
+  type: 'quote'
+  attrs?: QuoteAttrs
+  content: TextSpan[]
+  children?: BlockNode[]
+}
+
+export interface CodeBlockAttrs {
+  language?: string
+  /** Never rendered — present so shared command code can read attrs.align uniformly. */
+  align?: Alignment
+}
+
+/**
+ * Verbatim text: content carries no marks, newlines live inside the text
+ * (Enter inserts '\n' instead of splitting), and input rules are off.
+ */
+export interface CodeBlockNode {
+  type: 'codeBlock'
+  attrs?: CodeBlockAttrs
+  content: TextSpan[]
+  children?: BlockNode[]
+}
+
+export interface DividerAttrs {
+  /** Never rendered — present so shared command code can read attrs.align uniformly. */
+  align?: Alignment
+}
+
+/** A void block — no text, no children; just a horizontal rule. */
+export interface DividerNode {
+  type: 'divider'
+  attrs?: DividerAttrs
+  content: TextSpan[]
+  children?: BlockNode[]
+}
+
+export interface CalloutAttrs {
+  emoji?: string
+  align?: Alignment
+}
+
+export interface CalloutNode {
+  type: 'callout'
+  attrs?: CalloutAttrs
+  content: TextSpan[]
+  children?: BlockNode[]
+}
+
+export type BlockNode =
+  | ParagraphNode
+  | HeadingNode
+  | ListItemNode
+  | TodoNode
+  | QuoteNode
+  | CodeBlockNode
+  | DividerNode
+  | CalloutNode
 export type BlockType = BlockNode['type']
+
+export const DEFAULT_CALLOUT_EMOJI = '💡'
 
 export interface DocNode {
   type: 'doc'
@@ -161,6 +237,50 @@ export function listItem(
   return {
     type: 'listItem',
     attrs: { kind, ...attrs },
+    content,
+    ...(children && children.length > 0 ? { children } : {}),
+  }
+}
+
+export function todo(
+  checked = false,
+  content: TextSpan[] = [],
+  attrs?: Omit<TodoAttrs, 'checked'>,
+  children?: BlockNode[],
+): TodoNode {
+  return {
+    type: 'todo',
+    attrs: { checked, ...attrs },
+    content,
+    ...(children && children.length > 0 ? { children } : {}),
+  }
+}
+
+export function quote(content: TextSpan[] = [], attrs?: QuoteAttrs, children?: BlockNode[]): QuoteNode {
+  return {
+    type: 'quote',
+    ...(attrs ? { attrs } : {}),
+    content,
+    ...(children && children.length > 0 ? { children } : {}),
+  }
+}
+
+export function codeBlock(code = '', language?: string): CodeBlockNode {
+  return {
+    type: 'codeBlock',
+    ...(language ? { attrs: { language } } : {}),
+    content: code ? [{ type: 'text', text: code, marks: [] }] : [],
+  }
+}
+
+export function divider(): DividerNode {
+  return { type: 'divider', content: [] }
+}
+
+export function callout(content: TextSpan[] = [], attrs?: CalloutAttrs, children?: BlockNode[]): CalloutNode {
+  return {
+    type: 'callout',
+    ...(attrs ? { attrs } : {}),
     content,
     ...(children && children.length > 0 ? { children } : {}),
   }

@@ -1,5 +1,5 @@
-import type { BlockNode, DocNode, ListItemNode, TextSpan } from '@custom-wysiwyg/core'
-import { FONT_SIZES, getMark, hasMarkType } from '@custom-wysiwyg/core'
+import type { BlockNode, DocNode, ListItemNode, TextSpan, TodoNode } from '@custom-wysiwyg/core'
+import { blockText, DEFAULT_CALLOUT_EMOJI, FONT_SIZES, getMark, hasMarkType } from '@custom-wysiwyg/core'
 
 /**
  * Serializes documents to clean semantic HTML. Works on the model only — no
@@ -55,16 +55,37 @@ function serializeListItemToHTML(item: ListItemNode): string {
   return `<li${alignStyle(item)}>${own}\n${serializeBlocksToHTML(item.children)}\n</li>`
 }
 
+function serializeTodoToHTML(item: TodoNode): string {
+  const box = `<input type="checkbox" disabled${item.attrs.checked ? ' checked' : ''}> `
+  const own = box + serializeInlineToHTML(item.content)
+  if (!item.children || item.children.length === 0) return `<li${alignStyle(item)}>${own}</li>`
+  return `<li${alignStyle(item)}>${own}\n${serializeBlocksToHTML(item.children)}\n</li>`
+}
+
 export function serializeBlockToHTML(block: BlockNode): string {
-  if (block.type === 'listItem') {
-    // A lone list item still needs a valid list wrapper.
+  if (block.type === 'listItem' || block.type === 'todo') {
+    // A lone item still needs a valid list wrapper.
     return serializeBlocksToHTML([block])
   }
+  if (block.type === 'divider') return '<hr>'
+  if (block.type === 'codeBlock') {
+    const language = block.attrs?.language
+    const classAttr = language ? ` class="language-${escapeHTML(language)}"` : ''
+    return `<pre><code${classAttr}>${escapeHTML(blockText(block))}</code></pre>`
+  }
+  const nested = block.children && block.children.length > 0 ? serializeBlocksToHTML(block.children) : null
+  if (block.type === 'callout') {
+    const emoji = escapeHTML(block.attrs?.emoji ?? DEFAULT_CALLOUT_EMOJI)
+    const own = `<aside class="cwe-callout"${alignStyle(block)}>${emoji} ${serializeInlineToHTML(block.content)}`
+    return nested ? `${own}\n${nested}\n</aside>` : `${own}</aside>`
+  }
+  if (block.type === 'quote') {
+    const own = `<blockquote${alignStyle(block)}>${serializeInlineToHTML(block.content)}`
+    return nested ? `${own}\n${nested}\n</blockquote>` : `${own}</blockquote>`
+  }
   const tag = block.type === 'heading' ? `h${block.attrs.level}` : 'p'
-  const content = serializeInlineToHTML(block.content)
-  const own = `<${tag}${alignStyle(block)}>${content}</${tag}>`
-  if (!block.children || block.children.length === 0) return own
-  const nested = serializeBlocksToHTML(block.children)
+  const own = `<${tag}${alignStyle(block)}>${serializeInlineToHTML(block.content)}</${tag}>`
+  if (!nested) return own
   return `${own}\n<div class="cwe-children">\n${nested}\n</div>`
 }
 
@@ -88,6 +109,13 @@ export function serializeBlocksToHTML(blocks: BlockNode[]): string {
         i++
       }
       out.push(`<${tag}>\n${items.join('\n')}\n</${tag}>`)
+    } else if (block.type === 'todo') {
+      const items: string[] = []
+      while (i < blocks.length && blocks[i]!.type === 'todo') {
+        items.push(serializeTodoToHTML(blocks[i] as TodoNode))
+        i++
+      }
+      out.push(`<ul class="cwe-todos">\n${items.join('\n')}\n</ul>`)
     } else {
       out.push(serializeBlockToHTML(block))
       i++

@@ -68,6 +68,10 @@ All asserted in `packages/core/test/commands.test.ts`:
 - given a nested list item with following siblings, when it outdents → it becomes the next sibling of its parent and adopts the following siblings as children (document order preserved) `[test:lists]`
 - given an empty list item, when Enter runs → the item exits the list: outdent when nested, paragraph at top level; same on Backspace at item start (marker strips before any merge) `[test:lists]`
 - given consecutive ordered siblings, when serialized → they number 1..n per run; a bullet or non-list block resets the count (`[test:lists]` in export tests; view mirrors via data-ordinal)
+- given an empty todo/quote/callout, when Enter runs → the block exits to a paragraph; Backspace at the start of todo/quote/callout/codeBlock strips the chrome before any merge `[test:to-dos]` `[test:quotes and callouts]`
+- given a code block, when marks are toggled or input rules would fire → nothing happens (verbatim content); Enter inserts '\n', double-Enter on a trailing empty line exits `[test:code blocks]`
+- given a divider, when text would enter or split it → no-op; Backspace from the following block removes it `[test:dividers]`
+- given a checked todo, when it splits → the new todo starts unchecked `[test:to-dos]`
 
 ## Gotchas
 

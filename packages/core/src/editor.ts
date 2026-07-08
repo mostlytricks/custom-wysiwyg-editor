@@ -3,7 +3,8 @@ import type { Position, SelectionRange } from './model/position'
 import { selectionsEqual } from './model/position'
 import * as commands from './commands'
 import { runInputRules } from './inputrules'
-import { blockAt } from './model/path'
+import { blockAt, type BlockPath } from './model/path'
+import { blockLength, blockText } from './model/spans'
 import type { EditorState } from './state'
 import { createEditorState } from './state'
 import { renderBlocks } from './view/render'
@@ -81,6 +82,7 @@ export class Editor {
     this.dom.addEventListener('compositionend', this.onCompositionEnd as EventListener)
     this.dom.addEventListener('focus', this.onFocus)
     this.dom.addEventListener('blur', this.onBlur)
+    this.dom.addEventListener('click', this.onClick)
     documentRef.addEventListener('selectionchange', this.onSelectionChange)
 
     this.renderView()
@@ -203,6 +205,12 @@ export class Editor {
     toggleList: (kind: ListKind): boolean => this.apply(commands.toggleList(this.state, kind)),
     indentListItem: (): boolean => this.apply(commands.indentListItem(this.state)),
     outdentListItem: (): boolean => this.apply(commands.outdentListItem(this.state)),
+    setTodo: (): boolean => this.apply(commands.setTodo(this.state)),
+    toggleTodo: (path?: BlockPath): boolean => this.apply(commands.toggleTodo(this.state, path)),
+    setQuote: (): boolean => this.apply(commands.setQuote(this.state)),
+    setCallout: (emoji?: string): boolean => this.apply(commands.setCallout(this.state, emoji)),
+    setCodeBlock: (language?: string): boolean => this.apply(commands.setCodeBlock(this.state, language)),
+    insertDivider: (): boolean => this.apply(commands.insertDivider(this.state)),
     setAlign: (align: Alignment): boolean => this.apply(commands.setAlign(this.state, align)),
     selectAll: (): boolean => this.apply(commands.selectAll(this.state)),
     setSelection: (selection: SelectionRange): boolean => this.apply(commands.setSelection(this.state, selection)),
@@ -318,10 +326,31 @@ export class Editor {
         break
       }
       case 'insertParagraph':
-      case 'insertLineBreak':
+      case 'insertLineBreak': {
         event.preventDefault()
+        const block = blockAt(this.state.doc, this.state.selection.head.path)
+        if (block?.type === 'codeBlock' && event.inputType === 'insertParagraph') {
+          // Enter inside a code block inserts a newline; Enter on an empty
+          // trailing line exits into a fresh paragraph.
+          const head = this.state.selection.head
+          const text = blockText(block)
+          if (text.endsWith('\n') && head.offset === blockLength(block)) {
+            this.transact((state) => {
+              const trimmed = commands.deleteRange(
+                state,
+                { path: head.path, offset: head.offset - 1 },
+                { path: head.path, offset: head.offset },
+              )
+              return commands.insertParagraphAfter(trimmed)
+            }, 'exitCode')
+          } else {
+            this.commands.insertText('\n')
+          }
+          break
+        }
         this.commands.splitBlock()
         break
+      }
       case 'deleteContentBackward':
       case 'deleteWordBackward':
       case 'deleteSoftLineBackward':
@@ -404,6 +433,18 @@ export class Editor {
    * selection captured at composition start, and the view is re-rendered from
    * the model — which also discards whatever the browser left in the DOM.
    */
+  /** Checkbox clicks toggle the to-do in the model; the render syncs the input. */
+  private onClick = (event: MouseEvent): void => {
+    const target = event.target
+    if (!(target instanceof HTMLElement) || !target.classList.contains('cwe-todo-box')) return
+    event.preventDefault()
+    const blockEl = target.closest('[data-path]')
+    const attr = blockEl?.getAttribute('data-path')
+    if (!attr) return
+    const path = attr.split('.').map(Number)
+    this.commands.toggleTodo(path)
+  }
+
   private onFocus = (): void => {
     this.emit('focus')
   }

@@ -9,6 +9,14 @@
 Last touched: 2026-07-09
 
 ## Completed
+- **Phase 2 complete: todo/quote/codeBlock/divider/callout shipped.** Five block
+  types with Notion behaviors (checkbox click-to-toggle via real `<input>` —
+  no text nodes; verbatim code blocks: marks+rules inert, Enter='\n',
+  double-Enter exits; void dividers; emoji callouts). Input rules `[] `/`[x] `/
+  `> `/fence/`--- `; slash items; exit-and-strip Enter/Backspace semantics;
+  both exporters (GFM tasks, prefixed quotes, fences, `<hr>`, `<aside>`).
+  Gate green: 132/132 (27 new); browser smoke 66/66 across five suites
+  (16 new). SPEC Behavioral Contract +5 rows; status spine: core → ✓.
 - **Formatting domain minted + first slice shipped.** New `.gravity/formatting/SPEC.md`
   (mark model: boolean vs valued marks, replace-not-toggle, export fallback policy);
   wired into Doc Map, router, status spine, and a Formatting track in the plan.
@@ -39,7 +47,8 @@ Last touched: 2026-07-09
   doesn't restore literal `**` syntax.
 
 ## Next Step
-- **Phase 2, checkbox 4: to-do blocks (checkbox), blockquotes, code blocks, dividers,
-  callouts** — mostly new block types + input rules (`[] `, `> `, ``` ``` ```, `--- `)
-  on the existing tree; code blocks need a no-marks/no-input-rules content mode.
-  Read `.gravity/core/SPEC.md` first.
+- **Phase 3: tables** — table node (rows → cells → inline content), cell-aware
+  selection + Tab/arrow navigation, add/remove row & column UI, GFM export with
+  column alignment (`:---:`). The other candidate is Phase 4 block handles /
+  drag-reorder if tables feel heavy for one session. Read `.gravity/core/SPEC.md`
+  first; tables likely earn a `PLAN.tables.md` slice doc under `core/`.

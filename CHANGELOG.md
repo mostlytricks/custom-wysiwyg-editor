@@ -13,6 +13,17 @@ custom-wysiwyg-editor` from the workspace).
 ## [Unreleased]
 
 ### Added
+- **To-dos, blockquotes, code blocks, dividers, callouts** (Phase 2 complete).
+  Five new block types: `todo` (checkbox rendered as a real `<input>` — adds no
+  text nodes; click toggles via the model; splits start unchecked; GFM `- [ ]`
+  export), `quote` (`>` export incl. children), `codeBlock` (verbatim: marks and
+  input rules are inert inside, Enter inserts `\n`, double-Enter on a trailing
+  empty line exits; fenced Markdown with language, fence grows past inner
+  backticks), `divider` (void block: text can't enter it, Backspace removes it;
+  `---`/`<hr>`), and `callout` (emoji attr, `<aside>` in HTML, emoji-quote in
+  Markdown). Input rules `[] `, `[x] `, `> `, ``` ``` ``` + space, `--- `; slash
+  items for all five; empty todo/quote/callout exit to paragraph on Enter, and
+  Backspace at block start strips chrome before merging.
 - **Text color, highlight, and font size** (formatting domain). Three new valued
   marks — `color { value }`, `highlight { value }`, `fontSize { value: 'small' |
   'large' | 'huge' }` (token-based; `FONT_SIZES` owns the mapping). New command

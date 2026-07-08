@@ -3,8 +3,14 @@ export type {
   BlockNode,
   BlockType,
   BoldMark,
+  CalloutAttrs,
+  CalloutNode,
+  CodeBlockAttrs,
+  CodeBlockNode,
   CodeMark,
   ColorMark,
+  DividerAttrs,
+  DividerNode,
   DocNode,
   FontSizeMark,
   FontSizeToken,
@@ -21,9 +27,27 @@ export type {
   MarkType,
   ParagraphAttrs,
   ParagraphNode,
+  QuoteAttrs,
+  QuoteNode,
   TextSpan,
+  TodoAttrs,
+  TodoNode,
 } from './model/types'
-export { doc, emptyDoc, FONT_SIZES, heading, listItem, paragraph, text } from './model/types'
+export {
+  callout,
+  codeBlock,
+  DEFAULT_CALLOUT_EMOJI,
+  divider,
+  doc,
+  emptyDoc,
+  FONT_SIZES,
+  heading,
+  listItem,
+  paragraph,
+  quote,
+  text,
+  todo,
+} from './model/types'
 
 export type { Position, SelectionRange } from './model/position'
 export {
@@ -80,7 +104,9 @@ export {
   deleteRange,
   deleteRangeInDoc,
   indentListItem,
+  insertDivider,
   insertLines,
+  insertParagraphAfter,
   insertText,
   insertTextInDoc,
   isMarkActive,
@@ -88,13 +114,18 @@ export {
   removeMark,
   selectAll,
   setAlign,
+  setCallout,
+  setCodeBlock,
   setHeading,
   setList,
   setParagraph,
+  setQuote,
   setSelection,
+  setTodo,
   splitBlock,
   toggleList,
   toggleMark,
+  toggleTodo,
 } from './commands'
 
 export { runInputRules } from './inputrules'

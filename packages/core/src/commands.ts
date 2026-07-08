@@ -1,6 +1,7 @@
 import type {
   Alignment,
   BlockNode,
+  CalloutAttrs,
   DocNode,
   HeadingAttrs,
   HeadingLevel,
@@ -8,10 +9,12 @@ import type {
   ListKind,
   Mark,
   MarkType,
+  TodoAttrs,
 } from './model/types'
+import { DEFAULT_CALLOUT_EMOJI } from './model/types'
 import type { Position, SelectionRange } from './model/position'
 import { clampPosition, collapsedSelection, comparePositions, orderedRange } from './model/position'
-import { blockLength, marksAtOffset, marksEqual, normalizeSpans, sliceSpans } from './model/spans'
+import { blockLength, blockText, marksAtOffset, marksEqual, normalizeSpans, sliceSpans } from './model/spans'
 import type { BlockPath } from './model/path'
 import {
   adjustPathAfterRemoval,
@@ -122,7 +125,7 @@ export function insertText(state: EditorState, content: string): EditorState {
   let docNode = state.doc
   if (comparePositions(from, to) !== 0) docNode = deleteRangeInDoc(docNode, from, to)
   const block = blockAt(docNode, from.path)
-  if (!block) return state
+  if (!block || block.type === 'divider') return state
   const marks = state.storedMarks ?? marksAtOffset(block, from.offset)
   docNode = insertTextInDoc(docNode, from, content, marks)
   const caret = { path: from.path, offset: from.offset + content.length }
@@ -143,6 +146,15 @@ export function deleteBackward(state: EditorState): EditorState | null {
     // Backspace at the start of a list item removes the marker before any
     // merging: outdent when nested, otherwise convert to a paragraph.
     return outdentListItem(state) ?? { ...setParagraph(state), storedMarks: null }
+  }
+  if (
+    atStartBlock?.type === 'todo' ||
+    atStartBlock?.type === 'quote' ||
+    atStartBlock?.type === 'callout' ||
+    atStartBlock?.type === 'codeBlock'
+  ) {
+    // Same idea: strip the block's chrome before merging into the previous block.
+    return { ...setParagraph(state), storedMarks: null }
   }
   const prevPath = previousPath(state.doc, from.path)
   if (!prevPath) return null
@@ -199,26 +211,45 @@ export function splitBlock(state: EditorState): EditorState {
   let docNode = state.doc
   if (comparePositions(from, to) !== 0) docNode = deleteRangeInDoc(docNode, from, to)
   const block = blockAt(docNode, from.path)
-  if (!block) return state
+  if (!block || block.type === 'divider') return state
   const len = blockLength(block)
-  if (block.type === 'listItem' && len === 0 && comparePositions(from, to) === 0) {
-    // Enter on an empty list item exits the list: outdent when nested,
-    // otherwise turn the item into a paragraph (Notion behavior).
-    return outdentListItem(state) ?? setParagraph(state)
+  if (len === 0 && comparePositions(from, to) === 0) {
+    if (block.type === 'listItem') {
+      // Enter on an empty list item exits the list: outdent when nested,
+      // otherwise turn the item into a paragraph (Notion behavior).
+      return outdentListItem(state) ?? setParagraph(state)
+    }
+    if (block.type === 'todo' || block.type === 'quote' || block.type === 'callout') {
+      // Enter on an empty container block exits it the same way.
+      return setParagraph(state)
+    }
   }
   const before = normalizeSpans(sliceSpans(block.content, 0, from.offset))
   const after = normalizeSpans(sliceSpans(block.content, from.offset, len))
   const align = block.attrs?.align
-  const newBlock: BlockNode =
+  let newBlock: BlockNode =
     block.type === 'heading' && from.offset === len
       ? withChildren({ type: 'paragraph', ...(align ? { attrs: { align } } : {}), content: [] }, block.children)
       : withChildren({ ...block, content: after }, block.children)
+  // A split-off to-do starts unchecked.
+  if (newBlock.type === 'todo') newBlock = { ...newBlock, attrs: { ...newBlock.attrs, checked: false } }
   docNode = replaceBlockAt(docNode, from.path, (target) => withChildren({ ...target, content: before }, undefined))
   docNode = insertBlockAfter(docNode, from.path, newBlock)
   const newPath = [...from.path.slice(0, -1), from.path[from.path.length - 1]! + 1]
   return {
     doc: docNode,
     selection: collapsedSelection({ path: newPath, offset: 0 }),
+    storedMarks: null,
+  }
+}
+
+/** Inserts an empty paragraph after the caret's block and moves the caret into it (e.g. exiting a code block). */
+export function insertParagraphAfter(state: EditorState): EditorState {
+  const { from } = orderedRange(state.doc, state.selection)
+  const docNode = insertBlockAfter(state.doc, from.path, { type: 'paragraph', content: [] })
+  return {
+    doc: docNode,
+    selection: collapsedSelection({ path: siblingAfter(from.path), offset: 0 }),
     storedMarks: null,
   }
 }
@@ -238,6 +269,7 @@ export function insertLines(state: EditorState, content: string): EditorState {
 function rangeHasMark(docNode: DocNode, from: Position, to: Position, type: MarkType): boolean {
   let sawText = false
   for (const { path, block } of blocksInRange(docNode, from.path, to.path)) {
+    if (block.type === 'codeBlock') continue
     const localFrom = pathsEqual(path, from.path) ? from.offset : 0
     const localTo = pathsEqual(path, to.path) ? to.offset : blockLength(block)
     for (const span of sliceSpans(block.content, localFrom, localTo)) {
@@ -251,6 +283,8 @@ function rangeHasMark(docNode: DocNode, from: Position, to: Position, type: Mark
 function applyMarkToRange(docNode: DocNode, from: Position, to: Position, mark: Mark, add: boolean): DocNode {
   let out = docNode
   for (const { path, block } of blocksInRange(docNode, from.path, to.path)) {
+    // Code blocks are verbatim: marks never attach to their content.
+    if (block.type === 'codeBlock') continue
     const len = blockLength(block)
     const localFrom = pathsEqual(path, from.path) ? from.offset : 0
     const localTo = pathsEqual(path, to.path) ? to.offset : len
@@ -277,7 +311,7 @@ export function applyMark(state: EditorState, mark: Mark): EditorState {
   const { from, to } = orderedRange(state.doc, state.selection)
   if (comparePositions(from, to) === 0) {
     const block = blockAt(state.doc, from.path)
-    if (!block) return state
+    if (!block || block.type === 'codeBlock') return state
     const current = state.storedMarks ?? marksAtOffset(block, from.offset)
     return { ...state, storedMarks: [...current.filter((m) => m.type !== mark.type), mark] }
   }
@@ -308,7 +342,7 @@ export function toggleMark(state: EditorState, mark: Mark): EditorState {
   const { from, to } = orderedRange(state.doc, state.selection)
   if (comparePositions(from, to) === 0) {
     const block = blockAt(state.doc, from.path)
-    if (!block) return state
+    if (!block || block.type === 'codeBlock') return state
     const current = state.storedMarks ?? marksAtOffset(block, from.offset)
     const has = current.some((m) => marksEqual(m, mark))
     const storedMarks = has ? current.filter((m) => !marksEqual(m, mark)) : [...current, mark]
@@ -354,19 +388,108 @@ export function setParagraph(state: EditorState): EditorState {
 }
 
 export function setAlign(state: EditorState, align: Alignment): EditorState {
+  const alignAttr = align !== 'left' ? { align } : {}
   return mapSelectedBlocks(state, (block) => {
-    if (block.type === 'heading') {
-      const attrs: HeadingAttrs = { level: block.attrs.level, ...(align !== 'left' ? { align } : {}) }
-      return { ...block, attrs }
+    switch (block.type) {
+      case 'heading':
+        return { ...block, attrs: { level: block.attrs.level, ...alignAttr } }
+      case 'listItem':
+        return { ...block, attrs: { kind: block.attrs.kind, ...alignAttr } }
+      case 'todo':
+        return { ...block, attrs: { checked: block.attrs.checked, ...alignAttr } }
+      case 'callout': {
+        const attrs: CalloutAttrs = { ...(block.attrs?.emoji ? { emoji: block.attrs.emoji } : {}), ...alignAttr }
+        return { ...block, attrs }
+      }
+      case 'divider':
+      case 'codeBlock':
+        // Alignment doesn't apply to void/verbatim blocks.
+        return block
+      case 'paragraph':
+      case 'quote': {
+        if (align !== 'left') return { ...block, attrs: { align } }
+        const { attrs: _attrs, ...rest } = block
+        return rest
+      }
     }
-    if (block.type === 'listItem') {
-      const attrs: ListItemAttrs = { kind: block.attrs.kind, ...(align !== 'left' ? { align } : {}) }
-      return { ...block, attrs }
-    }
-    if (align !== 'left') return { ...block, attrs: { align } }
-    const { attrs: _attrs, ...rest } = block
-    return rest
   })
+}
+
+/** Converts the selected blocks to to-dos (unchecked, idempotent on checked state). */
+export function setTodo(state: EditorState): EditorState {
+  return mapSelectedBlocks(state, (block) => {
+    const attrs: TodoAttrs = {
+      checked: block.type === 'todo' ? block.attrs.checked : false,
+      ...(block.attrs?.align ? { align: block.attrs.align } : {}),
+    }
+    return withChildren({ type: 'todo', attrs, content: block.content }, block.children)
+  })
+}
+
+/** Flips the checked state of the to-do at `path` (defaults to the caret's block). */
+export function toggleTodo(state: EditorState, path?: BlockPath): EditorState | null {
+  const target = path ?? state.selection.head.path
+  const block = blockAt(state.doc, target)
+  if (!block || block.type !== 'todo') return null
+  const doc = replaceBlockAt(state.doc, target, (current) =>
+    current.type === 'todo' ? { ...current, attrs: { ...current.attrs, checked: !current.attrs.checked } } : current,
+  )
+  return { ...state, doc }
+}
+
+export function setQuote(state: EditorState): EditorState {
+  return mapSelectedBlocks(state, (block) =>
+    withChildren(
+      {
+        type: 'quote',
+        ...(block.attrs?.align ? { attrs: { align: block.attrs.align } } : {}),
+        content: block.content,
+      },
+      block.children,
+    ),
+  )
+}
+
+export function setCallout(state: EditorState, emoji = DEFAULT_CALLOUT_EMOJI): EditorState {
+  return mapSelectedBlocks(state, (block) => {
+    const attrs: CalloutAttrs = { emoji, ...(block.attrs?.align ? { align: block.attrs.align } : {}) }
+    return withChildren({ type: 'callout', attrs, content: block.content }, block.children)
+  })
+}
+
+/** Converts the selected blocks to code blocks, stripping all marks (verbatim text). */
+export function setCodeBlock(state: EditorState, language?: string): EditorState {
+  return mapSelectedBlocks(state, (block) => {
+    const code = blockText(block)
+    return withChildren(
+      {
+        type: 'codeBlock',
+        ...(language ? { attrs: { language } } : {}),
+        content: code ? [{ type: 'text', text: code, marks: [] }] : [],
+      },
+      block.children,
+    )
+  })
+}
+
+/**
+ * Inserts a divider: an empty paragraph converts in place (a fresh paragraph
+ * follows so the caret has somewhere to go); otherwise the divider goes after
+ * the current block. The caret ends up in the following block.
+ */
+export function insertDivider(state: EditorState): EditorState {
+  const { from } = orderedRange(state.doc, state.selection)
+  const block = blockAt(state.doc, from.path)
+  if (!block || block.type === 'divider') return state
+  if (block.type === 'paragraph' && blockLength(block) === 0 && (block.children?.length ?? 0) === 0) {
+    let docNode = replaceBlockAt(state.doc, from.path, () => ({ type: 'divider', content: [] }))
+    docNode = insertBlockAfter(docNode, from.path, { type: 'paragraph', content: [] })
+    return { doc: docNode, selection: collapsedSelection({ path: siblingAfter(from.path), offset: 0 }), storedMarks: null }
+  }
+  let docNode = insertBlockAfter(state.doc, from.path, { type: 'divider', content: [] })
+  const dividerPath = siblingAfter(from.path)
+  docNode = insertBlockAfter(docNode, dividerPath, { type: 'paragraph', content: [] })
+  return { doc: docNode, selection: collapsedSelection({ path: siblingAfter(dividerPath), offset: 0 }), storedMarks: null }
 }
 
 /** Converts the selected blocks to list items of `kind` (idempotent). */

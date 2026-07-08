@@ -1,7 +1,7 @@
-import type { HeadingAttrs, HeadingLevel, ListItemAttrs, ListKind, Mark } from './model/types'
+import type { BlockNode, HeadingAttrs, HeadingLevel, ListItemAttrs, ListKind, Mark } from './model/types'
 import { collapsedSelection, selectionIsCollapsed } from './model/position'
 import { blockText } from './model/spans'
-import { blockAt, replaceBlockAt } from './model/path'
+import { blockAt, insertBlockAfter, replaceBlockAt, siblingAfter } from './model/path'
 import { deleteRangeInDoc, insertTextInDoc } from './commands'
 import type { EditorState } from './state'
 
@@ -33,13 +33,60 @@ export function runInputRules(state: EditorState, insertedText: string): EditorS
   if (!selectionIsCollapsed(state.selection)) return null
   const head = state.selection.head
   const block = blockAt(state.doc, head.path)
-  if (!block) return null
+  if (!block || block.type === 'codeBlock') return null
   const textBefore = blockText(block).slice(0, head.offset)
 
-  // Block rules: "# " headings, "- "/"* " bullets, "1. " ordered lists —
+  // Block rules: "# " headings, "- "/"* " bullets, "1. " ordered lists,
+  // "[] "/"[x] " to-dos, "> " quotes, "``` " code, "--- " divider —
   // all triggered by the space, at the start of a paragraph.
   if (insertedText === ' ' && block.type === 'paragraph') {
     const prefix = textBefore.slice(0, -1)
+
+    const convertTo = (make: (current: BlockNode) => BlockNode): EditorState => {
+      const withoutPrefix = deleteRangeInDoc(
+        state.doc,
+        { path: head.path, offset: 0 },
+        { path: head.path, offset: textBefore.length },
+      )
+      const docNode = replaceBlockAt(withoutPrefix, head.path, make)
+      return { doc: docNode, selection: collapsedSelection({ path: head.path, offset: 0 }), storedMarks: null }
+    }
+
+    if (prefix === '[]' || prefix === '[x]') {
+      const checked = prefix === '[x]'
+      return convertTo((current) => ({
+        type: 'todo',
+        attrs: { checked, ...(current.attrs?.align ? { align: current.attrs.align } : {}) },
+        content: current.content,
+        ...(current.children ? { children: current.children } : {}),
+      }))
+    }
+    if (prefix === '>') {
+      return convertTo((current) => ({
+        type: 'quote',
+        ...(current.attrs?.align ? { attrs: { align: current.attrs.align } } : {}),
+        content: current.content,
+        ...(current.children ? { children: current.children } : {}),
+      }))
+    }
+    if (prefix === '```') {
+      return convertTo((current) => ({
+        type: 'codeBlock',
+        content: current.content,
+        ...(current.children ? { children: current.children } : {}),
+      }))
+    }
+    if (prefix === '---' && blockText(block) === textBefore) {
+      // The whole block was the dash prefix: replace with a divider and give
+      // the caret a fresh paragraph below.
+      let docNode = replaceBlockAt(state.doc, head.path, () => ({ type: 'divider', content: [] }))
+      docNode = insertBlockAfter(docNode, head.path, { type: 'paragraph', content: [] })
+      return {
+        doc: docNode,
+        selection: collapsedSelection({ path: siblingAfter(head.path), offset: 0 }),
+        storedMarks: null,
+      }
+    }
     const listKind: ListKind | null = BULLET_PREFIX.test(prefix)
       ? 'bullet'
       : ORDERED_PREFIX.test(prefix)

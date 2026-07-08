@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { doc, heading, listItem, paragraph, text } from '@custom-wysiwyg/core'
+import { callout, codeBlock, divider, doc, heading, listItem, paragraph, quote, text, todo } from '@custom-wysiwyg/core'
 import { serializeHTML } from '@custom-wysiwyg/export-html'
 
 describe('serializeHTML', () => {
@@ -79,5 +79,28 @@ describe('styled text', () => {
     const out = serializeHTML(doc(paragraph([text('t', [evil])])))
     expect(out).not.toContain('onmouseover="x')
     expect(out).toContain('&quot;')
+  })
+})
+
+describe('phase 2 blocks', () => {
+  it('groups todos into a task ul with checkbox inputs', () => {
+    const out = serializeHTML(doc(todo(true, [text('done')]), todo(false, [text('open')])))
+    expect(out).toBe(
+      '<ul class="cwe-todos">\n<li><input type="checkbox" disabled checked> done</li>\n<li><input type="checkbox" disabled> open</li>\n</ul>',
+    )
+  })
+
+  it('serializes quotes and callouts', () => {
+    expect(serializeHTML(doc(quote([text('q')])))).toBe('<blockquote>q</blockquote>')
+    expect(serializeHTML(doc(callout([text('c')])))).toBe('<aside class="cwe-callout">💡 c</aside>')
+  })
+
+  it('serializes code blocks with escaped content and language class', () => {
+    const out = serializeHTML(doc(codeBlock('if (a < b) {}', 'ts')))
+    expect(out).toBe('<pre><code class="language-ts">if (a &lt; b) {}</code></pre>')
+  })
+
+  it('serializes dividers', () => {
+    expect(serializeHTML(doc(divider()))).toBe('<hr>')
   })
 })

@@ -26,6 +26,52 @@ const CSS = `
 .cwe-content .cwe-children {
   margin-left: 24px;
 }
+.cwe-content .cwe-todo {
+  position: relative;
+  padding-left: 26px;
+}
+.cwe-content .cwe-todo > input.cwe-todo-box {
+  position: absolute;
+  left: 2px;
+  top: 0.28em;
+  margin: 0;
+  cursor: pointer;
+}
+.cwe-content .cwe-todo[data-checked="true"] {
+  color: #9b9a97;
+  text-decoration: line-through;
+}
+.cwe-content blockquote[data-path] {
+  border-left: 3px solid currentColor;
+  margin: 4px 0;
+  padding-left: 12px;
+}
+.cwe-content pre[data-path] {
+  background: rgba(135, 131, 120, 0.15);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.875em;
+  overflow-x: auto;
+  margin: 4px 0;
+}
+.cwe-content .cwe-callout {
+  position: relative;
+  background: rgba(135, 131, 120, 0.12);
+  border-radius: 6px;
+  padding: 10px 14px 10px 40px;
+  margin: 4px 0;
+}
+.cwe-content .cwe-callout::before {
+  content: attr(data-emoji);
+  position: absolute;
+  left: 12px;
+}
+.cwe-content hr[data-path] {
+  border: none;
+  border-top: 1px solid rgba(55, 53, 47, 0.25);
+  margin: 10px 0;
+}
 .cwe-bubble, .cwe-slash {
   position: fixed;
   z-index: 9999;

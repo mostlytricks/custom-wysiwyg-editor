@@ -58,9 +58,20 @@ export function attrToPath(attr: string): BlockPath | null {
 }
 
 function blockTag(block: BlockNode): string {
-  if (block.type === 'heading') return `h${block.attrs.level}`
-  if (block.type === 'listItem') return 'div'
-  return 'p'
+  switch (block.type) {
+    case 'heading':
+      return `h${block.attrs.level}`
+    case 'quote':
+      return 'blockquote'
+    case 'codeBlock':
+      return 'pre'
+    case 'divider':
+      return 'hr'
+    case 'paragraph':
+      return 'p'
+    default:
+      return 'div'
+  }
 }
 
 export function renderBlock(documentRef: Document, block: BlockNode, path: BlockPath, ordinal?: number): HTMLElement {
@@ -71,8 +82,29 @@ export function renderBlock(documentRef: Document, block: BlockNode, path: Block
     el.setAttribute('data-list', block.attrs.kind)
     if (block.attrs.kind === 'ordered') el.setAttribute('data-ordinal', String(ordinal ?? 1))
   }
+  if (block.type === 'todo') {
+    el.className = 'cwe-todo'
+    el.setAttribute('data-checked', String(block.attrs.checked))
+    // A checkbox element contributes no text nodes, so offset mapping is safe.
+    const box = documentRef.createElement('input')
+    box.type = 'checkbox'
+    box.className = 'cwe-todo-box'
+    box.checked = block.attrs.checked
+    box.tabIndex = -1
+    box.contentEditable = 'false'
+    el.appendChild(box)
+  }
+  if (block.type === 'codeBlock') el.className = 'cwe-code'
+  if (block.type === 'callout') {
+    el.className = 'cwe-callout'
+    el.setAttribute('data-emoji', block.attrs?.emoji ?? '💡')
+  }
+  if (block.type === 'divider') {
+    el.contentEditable = 'false'
+    return el
+  }
   const align = block.attrs?.align
-  if (align && align !== 'left') el.style.textAlign = align
+  if (align && align !== 'left' && block.type !== 'codeBlock') el.style.textAlign = align
   if (block.content.length === 0) {
     // A <br> keeps the empty block selectable and gives it height.
     el.appendChild(documentRef.createElement('br'))

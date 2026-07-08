@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { doc, heading, listItem, paragraph, text } from '@custom-wysiwyg/core'
+import { callout, codeBlock, divider, doc, heading, listItem, paragraph, quote, text, todo } from '@custom-wysiwyg/core'
 import { serializeMarkdown } from '@custom-wysiwyg/export-markdown'
 
 describe('serializeMarkdown', () => {
@@ -105,5 +105,37 @@ describe('styled text', () => {
   it('drops styling with styledText: plain', () => {
     const out = serializeMarkdown(doc(paragraph([text('hot', [red, { type: 'bold' }])])), { styledText: 'plain' })
     expect(out).toBe('**hot**')
+  })
+})
+
+describe('phase 2 blocks', () => {
+  it('serializes todos as GFM task list items', () => {
+    const out = serializeMarkdown(doc(todo(false, [text('open')]), todo(true, [text('done')])))
+    expect(out).toBe('- [ ] open\n- [x] done')
+  })
+
+  it('serializes quotes with > prefixes, including children', () => {
+    const out = serializeMarkdown(doc(quote([text('top')], undefined, [paragraph([text('nested')])])))
+    expect(out).toBe('> top\n>\n> nested')
+  })
+
+  it('serializes callouts as emoji quotes', () => {
+    const out = serializeMarkdown(doc(callout([text('note')], { emoji: '⚠️' })))
+    expect(out).toBe('> ⚠️ note')
+  })
+
+  it('serializes code blocks as fences with language', () => {
+    const out = serializeMarkdown(doc(codeBlock('const x = 1\nx++', 'js')))
+    expect(out).toBe('```js\nconst x = 1\nx++\n```')
+  })
+
+  it('grows the fence past inner backtick runs', () => {
+    const out = serializeMarkdown(doc(codeBlock('```')))
+    expect(out).toBe('````\n```\n````')
+  })
+
+  it('serializes dividers', () => {
+    const out = serializeMarkdown(doc(paragraph([text('a')]), divider(), paragraph([text('b')])))
+    expect(out).toBe('a\n\n---\n\nb')
   })
 })

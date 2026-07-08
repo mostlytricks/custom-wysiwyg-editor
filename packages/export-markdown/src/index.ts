@@ -1,5 +1,5 @@
 import type { BlockNode, DocNode, TextSpan } from '@custom-wysiwyg/core'
-import { getMark, hasMarkType } from '@custom-wysiwyg/core'
+import { blockText, DEFAULT_CALLOUT_EMOJI, getMark, hasMarkType } from '@custom-wysiwyg/core'
 import { escapeHTML, serializeBlockToHTML, spanStyle } from '@custom-wysiwyg/export-html'
 
 export interface MarkdownSerializeOptions {
@@ -81,18 +81,55 @@ function serializeOwnLine(block: BlockNode, options: MarkdownSerializeOptions): 
  * line. Ordered items number themselves 1..n per consecutive run; a list
  * item's children indent to its content column, per CommonMark.
  */
+/** Prefixes every line of `content` with `prefix` (for quotes/callouts). */
+function prefixLines(content: string, prefix: string): string {
+  return content
+    .split('\n')
+    .map((line) => (line.length > 0 ? prefix + line : prefix.trimEnd()))
+    .join('\n')
+}
+
+function serializeCodeBlock(block: BlockNode, indent: string): string {
+  const code = blockText(block)
+  const runs = code.match(/`+/g)
+  const longest = runs ? Math.max(...runs.map((run) => run.length)) : 0
+  const fence = '`'.repeat(Math.max(3, longest + 1))
+  const language = block.type === 'codeBlock' ? (block.attrs?.language ?? '') : ''
+  const body = code ? code.split('\n').map((line) => indent + line).join('\n') + '\n' : ''
+  return `${indent}${fence}${language}\n${body}${indent}${fence}`
+}
+
 function serializeBlockSequence(blocks: BlockNode[], options: MarkdownSerializeOptions, indent: string): string {
   const parts: Array<{ text: string; list: boolean }> = []
   let ordinal = 0
   for (const block of blocks) {
-    if (block.type === 'listItem') {
-      ordinal = block.attrs.kind === 'ordered' ? ordinal + 1 : 0
-      const marker = block.attrs.kind === 'ordered' ? `${ordinal}. ` : '- '
+    if (block.type === 'listItem' || block.type === 'todo') {
+      ordinal = block.type === 'listItem' && block.attrs.kind === 'ordered' ? ordinal + 1 : 0
+      const marker =
+        block.type === 'todo'
+          ? `- [${block.attrs.checked ? 'x' : ' '}] `
+          : block.attrs.kind === 'ordered'
+            ? `${ordinal}. `
+            : '- '
       let text = `${indent}${marker}${serializeInlineToMarkdown(block.content, options)}`
       if (block.children && block.children.length > 0) {
         text += '\n' + serializeBlockSequence(block.children, options, indent + ' '.repeat(marker.length))
       }
       parts.push({ text, list: true })
+    } else if (block.type === 'divider') {
+      ordinal = 0
+      parts.push({ text: `${indent}---`, list: false })
+    } else if (block.type === 'codeBlock') {
+      ordinal = 0
+      parts.push({ text: serializeCodeBlock(block, indent), list: false })
+    } else if (block.type === 'quote' || block.type === 'callout') {
+      ordinal = 0
+      const emoji = block.type === 'callout' ? `${block.attrs?.emoji ?? DEFAULT_CALLOUT_EMOJI} ` : ''
+      let inner = emoji + serializeInlineToMarkdown(block.content, options)
+      if (block.children && block.children.length > 0) {
+        inner += '\n\n' + serializeBlockSequence(block.children, options, '')
+      }
+      parts.push({ text: prefixLines(inner, '> ').split('\n').map((line) => indent + line).join('\n'), list: false })
     } else {
       ordinal = 0
       let text = indent + serializeOwnLine(block, options)
