@@ -1,7 +1,8 @@
-import type { Alignment, DocNode, HeadingLevel, Mark } from './model/types'
-import type { SelectionRange } from './model/position'
+import type { Alignment, DocNode, HeadingLevel, Mark, MarkType } from './model/types'
+import type { Position, SelectionRange } from './model/position'
 import { selectionsEqual } from './model/position'
 import * as commands from './commands'
+import { runInputRules } from './inputrules'
 import type { EditorState } from './state'
 import { createEditorState } from './state'
 import { renderBlock } from './view/render'
@@ -13,7 +14,18 @@ export interface EditorOptions {
   /** Called after every change to the document (not on selection-only changes). */
   onChange?: (editor: Editor) => void
   autofocus?: boolean
+  /** Markdown-style autoformatting while typing (`# `, `**bold**`, …). Default true. */
+  inputRules?: boolean
+  /** Hint shown (via CSS) while the document is empty. */
+  placeholder?: string
 }
+
+/**
+ * - 'change': the document changed
+ * - 'update': any state change (document, selection, or stored marks)
+ * - 'focus' / 'blur': the contenteditable gained or lost focus
+ */
+export type EditorEventType = 'change' | 'update' | 'focus' | 'blur'
 
 interface HistoryEntry {
   doc: DocNode
@@ -42,6 +54,7 @@ export class Editor {
   private composing = false
   private compositionSelection: SelectionRange | null = null
   private destroyed = false
+  private listeners = new Map<EditorEventType, Set<(editor: Editor) => void>>()
 
   constructor(place: HTMLElement, options: EditorOptions = {}) {
     this.options = options
@@ -55,12 +68,18 @@ export class Editor {
     this.dom.style.overflowWrap = 'break-word'
     this.dom.setAttribute('role', 'textbox')
     this.dom.setAttribute('aria-multiline', 'true')
+    if (options.placeholder) {
+      this.dom.setAttribute('data-placeholder', options.placeholder)
+      this.dom.style.position = 'relative'
+    }
     place.appendChild(this.dom)
 
     this.dom.addEventListener('beforeinput', this.onBeforeInput as EventListener)
     this.dom.addEventListener('keydown', this.onKeyDown)
     this.dom.addEventListener('compositionstart', this.onCompositionStart)
     this.dom.addEventListener('compositionend', this.onCompositionEnd as EventListener)
+    this.dom.addEventListener('focus', this.onFocus)
+    this.dom.addEventListener('blur', this.onBlur)
     documentRef.addEventListener('selectionchange', this.onSelectionChange)
 
     this.renderView()
@@ -75,6 +94,22 @@ export class Editor {
     return this.state
   }
 
+  /** Subscribe to editor events. Returns an unsubscribe function. */
+  on(type: EditorEventType, handler: (editor: Editor) => void): () => void {
+    let set = this.listeners.get(type)
+    if (!set) {
+      set = new Set()
+      this.listeners.set(type, set)
+    }
+    set.add(handler)
+    return () => set.delete(handler)
+  }
+
+  private emit(type: EditorEventType): void {
+    const set = this.listeners.get(type)
+    if (set) for (const handler of [...set]) handler(this)
+  }
+
   getDoc(): DocNode {
     return this.state.doc
   }
@@ -86,6 +121,7 @@ export class Editor {
     this.redoStack = []
     this.lastOrigin = null
     this.renderView()
+    this.emit('update')
   }
 
   focus(): void {
@@ -98,6 +134,7 @@ export class Editor {
     this.destroyed = true
     const documentRef = this.dom.ownerDocument
     documentRef.removeEventListener('selectionchange', this.onSelectionChange)
+    this.listeners.clear()
     this.dom.remove()
   }
 
@@ -109,6 +146,8 @@ export class Editor {
     this.lastOrigin = null
     this.renderView()
     this.options.onChange?.(this)
+    this.emit('change')
+    this.emit('update')
     return true
   }
 
@@ -120,6 +159,8 @@ export class Editor {
     this.lastOrigin = null
     this.renderView()
     this.options.onChange?.(this)
+    this.emit('change')
+    this.emit('update')
     return true
   }
 
@@ -139,6 +180,13 @@ export class Editor {
     setParagraph: (): boolean => this.apply(commands.setParagraph(this.state)),
     setAlign: (align: Alignment): boolean => this.apply(commands.setAlign(this.state, align)),
     selectAll: (): boolean => this.apply(commands.selectAll(this.state)),
+    setSelection: (selection: SelectionRange): boolean => this.apply(commands.setSelection(this.state, selection)),
+    deleteRange: (from: Position, to: Position): boolean => this.apply(commands.deleteRange(this.state, from, to)),
+  }
+
+  /** Whether a mark is active at the current selection (for toolbar states). */
+  isMarkActive(type: MarkType): boolean {
+    return commands.isMarkActive(this.state, type)
   }
 
   // -------------------------------------------------------------------------
@@ -167,12 +215,20 @@ export class Editor {
     }
     this.state = next
     this.renderView()
-    if (docChanged) this.options.onChange?.(this)
+    if (docChanged) {
+      this.options.onChange?.(this)
+      this.emit('change')
+    }
+    this.emit('update')
   }
 
   private renderView(): void {
     const documentRef = this.dom.ownerDocument
     this.dom.replaceChildren(...this.state.doc.children.map((block, i) => renderBlock(documentRef, block, i)))
+    const first = this.state.doc.children[0]
+    const isEmpty = this.state.doc.children.length === 1 && first?.type === 'paragraph' && first.children.length === 0
+    if (isEmpty) this.dom.setAttribute('data-empty', 'true')
+    else this.dom.removeAttribute('data-empty')
     if (this.hasFocus()) applyDOMSelection(this.dom, this.state.selection)
   }
 
@@ -195,6 +251,20 @@ export class Editor {
     if (!selection || selectionsEqual(selection, this.state.selection)) return
     // A selection move cancels pending stored marks (Cmd+B with no typing).
     this.state = { ...this.state, selection, storedMarks: null }
+    this.emit('update')
+  }
+
+  /** Inserts text, then gives markdown input rules a chance to transform it. */
+  private insertTextWithRules(content: string): void {
+    const inserted = commands.insertText(this.state, content)
+    if (this.options.inputRules !== false) {
+      const transformed = runInputRules(inserted, content)
+      if (transformed) {
+        this.apply(transformed, 'inputRule')
+        return
+      }
+    }
+    this.apply(inserted, 'insertText')
   }
 
   private onBeforeInput = (event: InputEvent): void => {
@@ -205,7 +275,7 @@ export class Editor {
       case 'insertReplacementText': {
         event.preventDefault()
         const data = event.data ?? event.dataTransfer?.getData('text/plain') ?? ''
-        if (data) this.commands.insertText(data)
+        if (data) this.insertTextWithRules(data)
         break
       }
       case 'insertParagraph':
@@ -282,6 +352,14 @@ export class Editor {
    * selection captured at composition start, and the view is re-rendered from
    * the model — which also discards whatever the browser left in the DOM.
    */
+  private onFocus = (): void => {
+    this.emit('focus')
+  }
+
+  private onBlur = (): void => {
+    this.emit('blur')
+  }
+
   private onCompositionStart = (): void => {
     this.composing = true
     this.compositionSelection = this.state.selection

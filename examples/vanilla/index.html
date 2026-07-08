@@ -3,50 +3,54 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>custom-wysiwyg — vanilla demo</title>
+    <title>custom-wysiwyg — demo</title>
     <style>
       body {
-        font-family: system-ui, sans-serif;
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
         max-width: 720px;
-        margin: 2rem auto;
-        padding: 0 1rem;
-        color: #1a1a1a;
+        margin: 0 auto;
+        padding: 4rem 1.5rem 6rem;
+        color: #37352f;
+        line-height: 1.5;
       }
-      .toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        margin-bottom: 8px;
+      .hint {
+        color: #9b9a97;
+        font-size: 14px;
+        margin-bottom: 2rem;
       }
-      .toolbar button {
-        font: inherit;
-        padding: 4px 10px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        background: #fff;
-        cursor: pointer;
-      }
-      .toolbar button:hover {
-        background: #f0f0f0;
+      .hint kbd {
+        background: rgba(55, 53, 47, 0.08);
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-family: inherit;
       }
       #editor .cwe-content {
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        padding: 12px 16px;
-        min-height: 180px;
+        min-height: 260px;
         outline: none;
+        font-size: 16px;
       }
-      #editor .cwe-content:focus {
-        border-color: #4a7dff;
+      #editor h1 { font-size: 1.9em; margin: 1em 0 0.3em; font-weight: 700; }
+      #editor h2 { font-size: 1.5em; margin: 1em 0 0.3em; font-weight: 650; }
+      #editor h3 { font-size: 1.25em; margin: 1em 0 0.3em; font-weight: 600; }
+      #editor p { margin: 0.25em 0; }
+      #editor code {
+        background: rgba(135, 131, 120, 0.15);
+        color: #eb5757;
+        border-radius: 4px;
+        padding: 1px 4px;
+        font-size: 0.85em;
       }
+      #editor a { color: #2383e2; }
       .exports {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 12px;
-        margin-top: 16px;
+        margin-top: 3rem;
+        border-top: 1px solid rgba(55, 53, 47, 0.15);
+        padding-top: 1.5rem;
       }
       .exports pre {
-        background: #f6f6f6;
+        background: #f7f6f3;
         border-radius: 8px;
         padding: 12px;
         font-size: 12px;
@@ -57,29 +61,17 @@
       }
       .exports h3 {
         margin: 0;
-        font-size: 13px;
+        font-size: 12px;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: #666;
+        letter-spacing: 0.05em;
+        color: #9b9a97;
       }
     </style>
   </head>
   <body>
-    <h1>custom-wysiwyg</h1>
-    <p>Vanilla JS embed — no framework, just the IIFE bundles. Live Markdown and HTML export below.</p>
-
-    <div class="toolbar" id="toolbar">
-      <button data-cmd="bold"><b>B</b></button>
-      <button data-cmd="italic"><i>I</i></button>
-      <button data-cmd="code">&lt;/&gt;</button>
-      <button data-cmd="h1">H1</button>
-      <button data-cmd="h2">H2</button>
-      <button data-cmd="p">¶</button>
-      <button data-cmd="left">⇤</button>
-      <button data-cmd="center">↔</button>
-      <button data-cmd="right">⇥</button>
-      <button data-cmd="undo">↩</button>
-      <button data-cmd="redo">↪</button>
+    <div class="hint">
+      Type <kbd>/</kbd> for blocks · select text for the toolbar · markdown shortcuts:
+      <kbd># </kbd> heading, <kbd>**bold**</kbd>, <kbd>*italic*</kbd>, <kbd>`code`</kbd>
     </div>
     <div id="editor"></div>
 
@@ -95,17 +87,23 @@
     </div>
 
     <script src="../../packages/core/dist/index.global.js"></script>
+    <script src="../../packages/ui/dist/index.global.js"></script>
     <script src="../../packages/export-markdown/dist/index.global.js"></script>
     <script src="../../packages/export-html/dist/index.global.js"></script>
     <script>
       const { Editor, doc: d, paragraph, heading, text } = CustomWysiwyg
+      const { BubbleMenu, SlashMenu } = CustomWysiwygUI
       const { serializeMarkdown } = CustomWysiwygMarkdown
       const { serializeHTML } = CustomWysiwygHTML
 
       const initial = d(
         heading(1, [text('Hello, editor')]),
-        paragraph([text('Type here. Try '), text('bold', [{ type: 'bold' }]), text(' and '), text('italic', [{ type: 'italic' }]), text('.')]),
-        paragraph([text('This block is centered.')], { align: 'center' }),
+        paragraph([
+          text('Select some text to format it, or start a new line and type '),
+          text('/', [{ type: 'code' }]),
+          text(' to insert a block.'),
+        ]),
+        paragraph(),
       )
 
       const outMd = document.getElementById('out-md')
@@ -118,32 +116,13 @@
       const editor = new Editor(document.getElementById('editor'), {
         doc: initial,
         autofocus: true,
+        placeholder: "Type '/' for commands…",
         onChange: (ed) => renderExports(ed.getDoc()),
       })
       renderExports(editor.getDoc())
 
-      document.getElementById('toolbar').addEventListener('mousedown', (e) => {
-        // Keep focus (and the selection) inside the editor while clicking buttons.
-        e.preventDefault()
-        const button = e.target.closest('button')
-        if (!button) return
-        const cmd = button.dataset.cmd
-        const c = editor.commands
-        const actions = {
-          bold: () => c.toggleBold(),
-          italic: () => c.toggleItalic(),
-          code: () => c.toggleCode(),
-          h1: () => c.setHeading(1),
-          h2: () => c.setHeading(2),
-          p: () => c.setParagraph(),
-          left: () => c.setAlign('left'),
-          center: () => c.setAlign('center'),
-          right: () => c.setAlign('right'),
-          undo: () => editor.undo(),
-          redo: () => editor.redo(),
-        }
-        actions[cmd]?.()
-      })
+      new BubbleMenu(editor)
+      new SlashMenu(editor)
     </script>
   </body>
 </html>

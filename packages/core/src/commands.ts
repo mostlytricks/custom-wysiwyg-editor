@@ -1,6 +1,6 @@
 import type { Alignment, BlockNode, DocNode, HeadingAttrs, HeadingLevel, Mark, MarkType } from './model/types'
 import type { Position, SelectionRange } from './model/position'
-import { collapsedSelection, comparePositions, orderedRange } from './model/position'
+import { clampPosition, collapsedSelection, comparePositions, orderedRange } from './model/position'
 import { blockLength, marksAtOffset, marksEqual, normalizeSpans, sliceSpans } from './model/spans'
 import type { EditorState } from './state'
 
@@ -41,7 +41,7 @@ export function deleteRangeInDoc(docNode: DocNode, from: Position, to: Position)
   return { ...docNode, children: [...blocks.slice(0, from.block), merged, ...blocks.slice(to.block + 1)] }
 }
 
-function insertTextInDoc(docNode: DocNode, pos: Position, content: string, marks: Mark[]): DocNode {
+export function insertTextInDoc(docNode: DocNode, pos: Position, content: string, marks: Mark[]): DocNode {
   const block = docNode.children[pos.block]
   if (!block) return docNode
   const children = normalizeSpans([
@@ -236,6 +236,43 @@ export function setAlign(state: EditorState, align: Alignment): EditorState {
     }
     return align !== 'left' ? { ...block, attrs: { align } } : { type: 'paragraph', children: block.children }
   })
+}
+
+/** Moves the selection without touching the document. */
+export function setSelection(state: EditorState, selection: SelectionRange): EditorState {
+  return {
+    ...state,
+    selection: {
+      anchor: clampPosition(state.doc, selection.anchor),
+      head: clampPosition(state.doc, selection.head),
+    },
+    storedMarks: null,
+  }
+}
+
+/** Deletes an explicit range and leaves the caret at its start. */
+export function deleteRange(state: EditorState, from: Position, to: Position): EditorState {
+  const range = orderedRange(state.doc, { anchor: from, head: to })
+  return {
+    doc: deleteRangeInDoc(state.doc, range.from, range.to),
+    selection: collapsedSelection(range.from),
+    storedMarks: null,
+  }
+}
+
+/**
+ * Whether the mark is active at the selection: over a range, true when every
+ * character has it; collapsed, true when the next typed character would get it.
+ */
+export function isMarkActive(state: EditorState, type: MarkType): boolean {
+  const { from, to } = orderedRange(state.doc, state.selection)
+  if (comparePositions(from, to) === 0) {
+    const block = state.doc.children[from.block]
+    if (!block) return false
+    const marks = state.storedMarks ?? marksAtOffset(block, from.offset)
+    return marks.some((m) => m.type === type)
+  }
+  return rangeHasMark(state.doc, from, to, type)
 }
 
 export function selectAll(state: EditorState): EditorState {

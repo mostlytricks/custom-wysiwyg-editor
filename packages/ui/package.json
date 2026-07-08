@@ -1,7 +1,7 @@
 {
-  "name": "@custom-wysiwyg/react",
+  "name": "@custom-wysiwyg/ui",
   "version": "0.1.0",
-  "description": "React bindings for @custom-wysiwyg/core — SSR-safe, App Router ready",
+  "description": "Notion-style UI widgets for @custom-wysiwyg/core: bubble toolbar, slash menu. Framework-free DOM components",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -22,11 +22,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@custom-wysiwyg/core": "*",
-    "@custom-wysiwyg/ui": "*"
-  },
-  "peerDependencies": {
-    "react": ">=18"
+    "@custom-wysiwyg/core": "*"
   },
   "license": "MIT"
 }

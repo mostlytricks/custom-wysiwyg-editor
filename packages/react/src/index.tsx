@@ -11,6 +11,13 @@ import {
   type CSSProperties,
 } from 'react'
 
+import {
+  BubbleMenu as BubbleMenuWidget,
+  SlashMenu as SlashMenuWidget,
+  type BubbleMenuOptions,
+  type SlashMenuItem,
+} from '@custom-wysiwyg/ui'
+
 export type { DocNode }
 export { CoreEditor }
 
@@ -94,3 +101,26 @@ export const Editor = forwardRef<CoreEditor | null, EditorProps>(function Editor
 
   return <div ref={mountRef} className={className} style={style} />
 })
+
+/**
+ * Floating toolbar over non-collapsed selections (Notion style). Renders
+ * nothing itself — it mounts the framework-free widget for the given editor.
+ */
+export function BubbleMenu({ editor, buttons }: { editor: CoreEditor | null; buttons?: BubbleMenuOptions['buttons'] }) {
+  useEffect(() => {
+    if (!editor) return
+    const widget = new BubbleMenuWidget(editor, buttons ? { buttons } : {})
+    return () => widget.destroy()
+  }, [editor, buttons])
+  return null
+}
+
+/** Type '/' for a block palette (Notion style). Mounts the framework-free widget. */
+export function SlashMenu({ editor, items }: { editor: CoreEditor | null; items?: SlashMenuItem[] }) {
+  useEffect(() => {
+    if (!editor) return
+    const widget = new SlashMenuWidget(editor, items ? { items } : {})
+    return () => widget.destroy()
+  }, [editor, items])
+  return null
+}

@@ -9,6 +9,7 @@ The DOM is never the source of truth. The editor keeps an internal **JSON docume
 ```
 packages/
   core/             @custom-wysiwyg/core             framework-free engine (zero deps)
+  ui/               @custom-wysiwyg/ui               Notion-style widgets: bubble toolbar, slash menu (framework-free)
   react/            @custom-wysiwyg/react            React/Next.js bindings ('use client', SSR-safe)
   export-markdown/  @custom-wysiwyg/export-markdown  model → Markdown
   export-html/      @custom-wysiwyg/export-html      model → clean HTML
@@ -29,27 +30,40 @@ Then open `examples/vanilla/index.html` in a browser for a zero-framework demo w
 ### Plain website
 
 ```html
-<script src="dist/index.global.js"></script>
+<script src="core/dist/index.global.js"></script>
+<script src="ui/dist/index.global.js"></script>
 <script>
   const { Editor, doc, paragraph, text } = CustomWysiwyg
   const editor = new Editor(document.getElementById('editor'), {
     doc: doc(paragraph([text('Hello')])),
+    placeholder: "Type '/' for commands…",
     onChange: (ed) => console.log(ed.getDoc()),
   })
-  editor.commands.toggleBold()
+  new CustomWysiwygUI.BubbleMenu(editor) // floating toolbar over selections
+  new CustomWysiwygUI.SlashMenu(editor)  // type '/' for a block palette
 </script>
 ```
 
 ### React / Next.js
 
 ```tsx
-import { Editor } from '@custom-wysiwyg/react'
+import { useState } from 'react'
+import { BubbleMenu, SlashMenu, useEditor } from '@custom-wysiwyg/react'
 import { serializeMarkdown } from '@custom-wysiwyg/export-markdown'
 
 export default function Page() {
-  return <Editor onChange={(doc) => console.log(serializeMarkdown(doc))} autoFocus />
+  const { ref, editor } = useEditor({ onChange: (doc) => console.log(serializeMarkdown(doc)) })
+  return (
+    <>
+      <div ref={ref} />
+      <BubbleMenu editor={editor} />
+      <SlashMenu editor={editor} />
+    </>
+  )
 }
 ```
+
+(Or use the `<Editor>` component instead of the hook when you don't need the instance.)
 
 The package is a client-component boundary (`'use client'` is baked into the bundle) and touches the DOM only after mount, so it works in the App Router without `dynamic(..., { ssr: false })`. For server-side rendering of *content* (not the editor), `serializeHTML(doc)` runs fine in Node/RSC.
 
@@ -90,13 +104,19 @@ Markdown has no alignment syntax, so aligned blocks fall back to inline HTML (Co
 - Paragraphs, headings h1–h3, text alignment
 - Undo/redo with typing coalescing (Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z)
 - IME composition (composed text is applied to the model on compositionend)
+- **Slash menu**: type `/` for a searchable block palette (arrows + Enter, Esc to dismiss, extensible items)
+- **Bubble toolbar**: floats above any selection with mark/block/align actions and active states
+- **Markdown input rules**: `# `/`## `/`### ` → headings; `**bold**`, `*italic*`, `` `code` `` autoformat as you type
+- Placeholder text while the document is empty
+- Editor events (`change`, `update`, `focus`, `blur`) for building custom UI
 - Deterministic Markdown + HTML export
 
 ## Roadmap
 
 - HTML/Markdown **import** (paste rich text, set initial content from HTML)
-- Lists, blockquotes, images
-- Cross-block mark toggling edge cases, smarter caret motion
+- Nested block tree: lists, to-dos, quotes, code blocks, callouts
+- Tables (GFM export with column alignment)
+- Block handles: drag to reorder, hover `+` to insert
 - Collaboration-ready transaction log (commands are already pure & serializable)
 
 ## Development
