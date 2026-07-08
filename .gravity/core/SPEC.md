@@ -21,13 +21,22 @@ against `examples/vanilla/index.html` after `npm run build` `[review]`.
 // packages/core/src/commands.ts — a command is a pure function on EditorState:
 export function myCommand(/* args */): (state: EditorState) => EditorState | null {
   return (state) => {
-    // read state.doc + state.selection; build a NEW doc via the span/position helpers
-    // (sliceSpans / normalizeSpans / clampPosition); never mutate, never touch the DOM.
+    // read state.doc + state.selection; build a NEW doc via the path/span helpers
+    // (blockAt / replaceBlockAt / blockEntries from model/path; sliceSpans /
+    // normalizeSpans / clampPosition); never mutate, never touch the DOM.
     if (/* command doesn't apply */) return null
     return { ...state, doc: newDoc, selection: newSelection }
   }
 }
 ```
+
+The doc is a **recursive block tree**: a block's own inline text lives in
+`content: TextSpan[]`; nested blocks in optional `children: BlockNode[]`. A
+`Position` is `{ path: number[], offset }` — the path indexes `children`
+arrays from `doc.children` down; the offset counts characters across the
+target block's `content` only (child blocks have their own paths). Document
+order = lexicographic path order (parent before descendants); traverse with
+`blockEntries` / `previousPath` / `nextPath`, never by hand.
 
 ## Generate
 
@@ -53,10 +62,18 @@ All asserted in `packages/core/test/commands.test.ts`:
 - given a caret at the end of a heading, when the block splits → the new block is a **paragraph** (heading doesn't leak downward) `[test:splitBlock]`
 - given a cross-block range, when text is inserted or deleted → the endpoint blocks merge into one `[test:insertText]`
 - given a collapsed selection with stored marks, when the next insert happens → the stored marks apply `[test:toggleMark]`
+- given a range spanning tree depths, when text is inserted or deleted → the endpoint blocks merge and surviving descendants hoist into the removed block's slot `[test:block tree]`
+- given a caret at the start of a first child block, when `deleteBackward` runs → the child's text merges into its parent (and an *empty* parent is replaced by its hoisted children) `[test:block tree]`
 
 ## Gotchas
 
 - Selection state can be stale immediately after fast key sequences (real bug: Ctrl+B
   right after Shift+Home) — happy-dom never shows this; only the browser smoke does.
-- Phase 2 (block tree, path-based positions) rewrites the Minimal Shape's position
-  types — update this SPEC in the same slice, or it starts lying.
+- Cross-depth deletes hoist surviving descendants into the removed block's slot
+  (document order preserved); `splitBlock` moves nested children to the *new* block.
+  These are provisional Notion-ish choices — revisit when list types land, and add
+  `[test:…]` rows to the Behavioral Contract for whichever semantics survive.
+- Rendered blocks carry `data-path` ("0", "0.1"); a block's nested children render
+  *outside* its data-path element (sibling `.cwe-children` wrapper), so collecting a
+  block element's text nodes never leaks child-block text. Don't render child blocks
+  inside the content element — selection mapping counts on this.

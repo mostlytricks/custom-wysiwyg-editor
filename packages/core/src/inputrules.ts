@@ -1,6 +1,7 @@
 import type { HeadingAttrs, HeadingLevel, Mark } from './model/types'
 import { collapsedSelection, selectionIsCollapsed } from './model/position'
 import { blockText } from './model/spans'
+import { blockAt, replaceBlockAt } from './model/path'
 import { deleteRangeInDoc, insertTextInDoc } from './commands'
 import type { EditorState } from './state'
 
@@ -29,7 +30,7 @@ const HEADING_PREFIX = /^(#{1,3})$/
 export function runInputRules(state: EditorState, insertedText: string): EditorState | null {
   if (!selectionIsCollapsed(state.selection)) return null
   const head = state.selection.head
-  const block = state.doc.children[head.block]
+  const block = blockAt(state.doc, head.path)
   if (!block) return null
   const textBefore = blockText(block).slice(0, head.offset)
 
@@ -40,17 +41,21 @@ export function runInputRules(state: EditorState, insertedText: string): EditorS
       const level = match[1].length as HeadingLevel
       const withoutPrefix = deleteRangeInDoc(
         state.doc,
-        { block: head.block, offset: 0 },
-        { block: head.block, offset: textBefore.length },
+        { path: head.path, offset: 0 },
+        { path: head.path, offset: textBefore.length },
       )
-      const target = withoutPrefix.children[head.block]
+      const target = blockAt(withoutPrefix, head.path)
       if (!target) return null
       const attrs: HeadingAttrs = { level, ...(target.attrs?.align ? { align: target.attrs.align } : {}) }
-      const children = withoutPrefix.children.slice()
-      children[head.block] = { type: 'heading', attrs, children: target.children }
+      const docNode = replaceBlockAt(withoutPrefix, head.path, (current) => ({
+        type: 'heading',
+        attrs,
+        content: current.content,
+        ...(current.children ? { children: current.children } : {}),
+      }))
       return {
-        doc: { ...withoutPrefix, children },
-        selection: collapsedSelection({ block: head.block, offset: 0 }),
+        doc: docNode,
+        selection: collapsedSelection({ path: head.path, offset: 0 }),
         storedMarks: null,
       }
     }
@@ -62,11 +67,11 @@ export function runInputRules(state: EditorState, insertedText: string): EditorS
     const inner = match?.[1]
     if (!match || !inner || !inner.trim()) continue
     const start = head.offset - match[0].length
-    let docNode = deleteRangeInDoc(state.doc, { block: head.block, offset: start }, { block: head.block, offset: head.offset })
-    docNode = insertTextInDoc(docNode, { block: head.block, offset: start }, inner, [rule.mark])
+    let docNode = deleteRangeInDoc(state.doc, { path: head.path, offset: start }, { path: head.path, offset: head.offset })
+    docNode = insertTextInDoc(docNode, { path: head.path, offset: start }, inner, [rule.mark])
     return {
       doc: docNode,
-      selection: collapsedSelection({ block: head.block, offset: start + inner.length }),
+      selection: collapsedSelection({ path: head.path, offset: start + inner.length }),
       // Typing continues unformatted after an autoformat, matching Notion.
       storedMarks: [],
     }

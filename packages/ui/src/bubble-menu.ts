@@ -1,5 +1,5 @@
 import type { Editor, HeadingLevel } from '@custom-wysiwyg/core'
-import { selectionIsCollapsed } from '@custom-wysiwyg/core'
+import { blockAt, selectionIsCollapsed } from '@custom-wysiwyg/core'
 import { clampToViewport, selectionRect } from './position'
 import { injectStyles } from './styles'
 
@@ -13,7 +13,7 @@ interface BubbleButton {
 
 function currentBlock(editor: Editor) {
   const state = editor.getState()
-  return state.doc.children[state.selection.head.block]
+  return blockAt(state.doc, state.selection.head.path)
 }
 
 const BUTTONS: BubbleButton[] = [

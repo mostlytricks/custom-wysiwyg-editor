@@ -2,6 +2,22 @@ import type { Alignment, BlockNode, DocNode, HeadingAttrs, HeadingLevel, Mark, M
 import type { Position, SelectionRange } from './model/position'
 import { clampPosition, collapsedSelection, comparePositions, orderedRange } from './model/position'
 import { blockLength, marksAtOffset, marksEqual, normalizeSpans, sliceSpans } from './model/spans'
+import type { BlockPath } from './model/path'
+import {
+  adjustPathAfterRemoval,
+  blockAt,
+  blocksInRange,
+  comparePaths,
+  insertBlockAfter,
+  isAncestorOrSelf,
+  lastPath,
+  pathsEqual,
+  previousPath,
+  nextPath,
+  removeBlockAt,
+  replaceBlockAt,
+  spliceBlocksAt,
+} from './model/path'
 import type { EditorState } from './state'
 
 /**
@@ -12,55 +28,92 @@ import type { EditorState } from './state'
  * as keystrokes.
  */
 
-function replaceBlock(docNode: DocNode, index: number, block: BlockNode): DocNode {
-  const children = docNode.children.slice()
-  children[index] = block
-  return { ...docNode, children }
+/** Copies a block, replacing its nested children (omitting the key when empty). */
+function withChildren<T extends BlockNode>(block: T, children: BlockNode[] | undefined): T {
+  const next = { ...block }
+  if (children && children.length > 0) next.children = children
+  else delete next.children
+  return next
 }
 
-/** Deletes [from, to). A cross-block range merges the endpoint blocks into one. */
+/**
+ * Deletes [from, to). A cross-block range merges the endpoint blocks into
+ * one: the `from` block keeps its identity and gains the tail of the `to`
+ * block. Blocks strictly inside the range are removed; their descendants
+ * that lie *after* the range (e.g. the `to` block's children) are hoisted
+ * into the removed block's slot, preserving document order.
+ */
 export function deleteRangeInDoc(docNode: DocNode, from: Position, to: Position): DocNode {
-  const blocks = docNode.children
-  const first = blocks[from.block]
-  const last = blocks[to.block]
+  const first = blockAt(docNode, from.path)
+  const last = blockAt(docNode, to.path)
   if (!first || !last) return docNode
-  if (from.block === to.block) {
-    const children = normalizeSpans([
-      ...sliceSpans(first.children, 0, from.offset),
-      ...sliceSpans(first.children, to.offset, blockLength(first)),
+  if (pathsEqual(from.path, to.path)) {
+    const content = normalizeSpans([
+      ...sliceSpans(first.content, 0, from.offset),
+      ...sliceSpans(first.content, to.offset, blockLength(first)),
     ])
-    return replaceBlock(docNode, from.block, { ...first, children })
+    return replaceBlockAt(docNode, from.path, (block) => ({ ...block, content }))
   }
-  const merged: BlockNode = {
-    ...first,
-    children: normalizeSpans([
-      ...sliceSpans(first.children, 0, from.offset),
-      ...sliceSpans(last.children, to.offset, blockLength(last)),
-    ]),
+  const mergedContent = normalizeSpans([
+    ...sliceSpans(first.content, 0, from.offset),
+    ...sliceSpans(last.content, to.offset, blockLength(last)),
+  ])
+
+  /** Survivors of a dropped subtree: descendants past `to.path`, in document order. */
+  function salvage(block: BlockNode, path: BlockPath): BlockNode[] {
+    const out: BlockNode[] = []
+    const children = block.children ?? []
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i]!
+      const childPath = [...path, i]
+      if (comparePaths(childPath, to.path) > 0) out.push(child)
+      else out.push(...salvage(child, childPath))
+    }
+    return out
   }
-  return { ...docNode, children: [...blocks.slice(0, from.block), merged, ...blocks.slice(to.block + 1)] }
+
+  function rebuild(blocks: BlockNode[], prefix: BlockPath): BlockNode[] {
+    const out: BlockNode[] = []
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i]!
+      const path = [...prefix, i]
+      if (isAncestorOrSelf(path, from.path)) {
+        const children = rebuild(block.children ?? [], path)
+        const rebuilt = withChildren(block, children)
+        out.push(pathsEqual(path, from.path) ? { ...rebuilt, content: mergedContent } : rebuilt)
+      } else if (comparePaths(path, from.path) < 0 || comparePaths(path, to.path) > 0) {
+        out.push(block)
+      } else {
+        // Inside (from, to]: the block goes; survivors take its slot.
+        out.push(...salvage(block, path))
+      }
+    }
+    return out
+  }
+
+  return { ...docNode, children: rebuild(docNode.children, []) }
 }
 
 export function insertTextInDoc(docNode: DocNode, pos: Position, content: string, marks: Mark[]): DocNode {
-  const block = docNode.children[pos.block]
+  const block = blockAt(docNode, pos.path)
   if (!block) return docNode
-  const children = normalizeSpans([
-    ...sliceSpans(block.children, 0, pos.offset),
+  const spans = normalizeSpans([
+    ...sliceSpans(block.content, 0, pos.offset),
     { type: 'text', text: content, marks },
-    ...sliceSpans(block.children, pos.offset, blockLength(block)),
+    ...sliceSpans(block.content, pos.offset, blockLength(block)),
   ])
-  return replaceBlock(docNode, pos.block, { ...block, children })
+  return replaceBlockAt(docNode, pos.path, (target) => ({ ...target, content: spans }))
 }
 
 export function insertText(state: EditorState, content: string): EditorState {
   const { from, to } = orderedRange(state.doc, state.selection)
   let docNode = state.doc
   if (comparePositions(from, to) !== 0) docNode = deleteRangeInDoc(docNode, from, to)
-  const block = docNode.children[from.block]
+  const block = blockAt(docNode, from.path)
   if (!block) return state
   const marks = state.storedMarks ?? marksAtOffset(block, from.offset)
   docNode = insertTextInDoc(docNode, from, content, marks)
-  const caret = { block: from.block, offset: from.offset + content.length }
+  const caret = { path: from.path, offset: from.offset + content.length }
   return { doc: docNode, selection: collapsedSelection(caret), storedMarks: state.storedMarks }
 }
 
@@ -70,24 +123,32 @@ export function deleteBackward(state: EditorState): EditorState | null {
     return { doc: deleteRangeInDoc(state.doc, from, to), selection: collapsedSelection(from), storedMarks: null }
   }
   if (from.offset > 0) {
-    const pos = { block: from.block, offset: from.offset - 1 }
+    const pos = { path: from.path, offset: from.offset - 1 }
     return { doc: deleteRangeInDoc(state.doc, pos, from), selection: collapsedSelection(pos), storedMarks: null }
   }
-  if (from.block === 0) return null
-  const prev = state.doc.children[from.block - 1]
+  const prevPath = previousPath(state.doc, from.path)
+  if (!prevPath) return null
+  const prev = blockAt(state.doc, prevPath)
   if (!prev) return null
   const prevLen = blockLength(prev)
   if (prevLen === 0) {
     // Backspacing into an empty block removes the empty block and keeps the
     // current block's type (so a heading under an empty paragraph survives).
-    const children = [...state.doc.children.slice(0, from.block - 1), ...state.doc.children.slice(from.block)]
+    if (isAncestorOrSelf(prevPath, from.path)) {
+      // The empty block is the parent: hoist its children into its slot.
+      const hoisted = spliceBlocksAt(state.doc, prevPath, prev.children ?? [])
+      const depth = prevPath.length - 1
+      const newPath = from.path.slice()
+      newPath.splice(depth, 2, prevPath[depth]! + from.path[depth + 1]!)
+      return { doc: hoisted, selection: collapsedSelection({ path: newPath, offset: 0 }), storedMarks: null }
+    }
     return {
-      doc: { ...state.doc, children },
-      selection: collapsedSelection({ block: from.block - 1, offset: 0 }),
+      doc: removeBlockAt(state.doc, prevPath),
+      selection: collapsedSelection({ path: adjustPathAfterRemoval(from.path, prevPath), offset: 0 }),
       storedMarks: null,
     }
   }
-  const pos = { block: from.block - 1, offset: prevLen }
+  const pos = { path: prevPath, offset: prevLen }
   return { doc: deleteRangeInDoc(state.doc, pos, from), selection: collapsedSelection(pos), storedMarks: null }
 }
 
@@ -96,44 +157,45 @@ export function deleteForward(state: EditorState): EditorState | null {
   if (comparePositions(from, to) !== 0) {
     return { doc: deleteRangeInDoc(state.doc, from, to), selection: collapsedSelection(from), storedMarks: null }
   }
-  const block = state.doc.children[from.block]
+  const block = blockAt(state.doc, from.path)
   if (!block) return null
   if (from.offset < blockLength(block)) {
-    const end = { block: from.block, offset: from.offset + 1 }
+    const end = { path: from.path, offset: from.offset + 1 }
     return { doc: deleteRangeInDoc(state.doc, from, end), selection: collapsedSelection(from), storedMarks: null }
   }
-  if (from.block >= state.doc.children.length - 1) return null
-  const start = { block: from.block + 1, offset: 0 }
+  const next = nextPath(state.doc, from.path)
+  if (!next) return null
+  const start = { path: next, offset: 0 }
   return { doc: deleteRangeInDoc(state.doc, from, start), selection: collapsedSelection(from), storedMarks: null }
 }
 
 /**
- * Splits the current block at the caret (Enter). Pressing Enter at the end of
- * a heading starts a paragraph, matching what every mainstream editor does.
+ * Splits the current block at the caret (Enter). The new block becomes the
+ * next sibling and takes the original's nested children (they render after
+ * the split point, so document order is preserved). Pressing Enter at the
+ * end of a heading starts a paragraph, matching what every mainstream
+ * editor does.
  */
 export function splitBlock(state: EditorState): EditorState {
   const { from, to } = orderedRange(state.doc, state.selection)
   let docNode = state.doc
   if (comparePositions(from, to) !== 0) docNode = deleteRangeInDoc(docNode, from, to)
-  const block = docNode.children[from.block]
+  const block = blockAt(docNode, from.path)
   if (!block) return state
   const len = blockLength(block)
-  const before = normalizeSpans(sliceSpans(block.children, 0, from.offset))
-  const after = normalizeSpans(sliceSpans(block.children, from.offset, len))
+  const before = normalizeSpans(sliceSpans(block.content, 0, from.offset))
+  const after = normalizeSpans(sliceSpans(block.content, from.offset, len))
   const align = block.attrs?.align
   const newBlock: BlockNode =
     block.type === 'heading' && from.offset === len
-      ? { type: 'paragraph', ...(align ? { attrs: { align } } : {}), children: [] }
-      : { ...block, children: after }
-  const children = [
-    ...docNode.children.slice(0, from.block),
-    { ...block, children: before },
-    newBlock,
-    ...docNode.children.slice(from.block + 1),
-  ]
+      ? withChildren({ type: 'paragraph', ...(align ? { attrs: { align } } : {}), content: [] }, block.children)
+      : withChildren({ ...block, content: after }, block.children)
+  docNode = replaceBlockAt(docNode, from.path, (target) => withChildren({ ...target, content: before }, undefined))
+  docNode = insertBlockAfter(docNode, from.path, newBlock)
+  const newPath = [...from.path.slice(0, -1), from.path[from.path.length - 1]! + 1]
   return {
-    doc: { ...docNode, children },
-    selection: collapsedSelection({ block: from.block + 1, offset: 0 }),
+    doc: docNode,
+    selection: collapsedSelection({ path: newPath, offset: 0 }),
     storedMarks: null,
   }
 }
@@ -152,12 +214,10 @@ export function insertLines(state: EditorState, content: string): EditorState {
 
 function rangeHasMark(docNode: DocNode, from: Position, to: Position, type: MarkType): boolean {
   let sawText = false
-  for (let b = from.block; b <= to.block; b++) {
-    const block = docNode.children[b]
-    if (!block) continue
-    const localFrom = b === from.block ? from.offset : 0
-    const localTo = b === to.block ? to.offset : blockLength(block)
-    for (const span of sliceSpans(block.children, localFrom, localTo)) {
+  for (const { path, block } of blocksInRange(docNode, from.path, to.path)) {
+    const localFrom = pathsEqual(path, from.path) ? from.offset : 0
+    const localTo = pathsEqual(path, to.path) ? to.offset : blockLength(block)
+    for (const span of sliceSpans(block.content, localFrom, localTo)) {
       sawText = true
       if (!span.marks.some((m) => m.type === type)) return false
     }
@@ -167,22 +227,20 @@ function rangeHasMark(docNode: DocNode, from: Position, to: Position, type: Mark
 
 function applyMarkToRange(docNode: DocNode, from: Position, to: Position, mark: Mark, add: boolean): DocNode {
   let out = docNode
-  for (let b = from.block; b <= to.block; b++) {
-    const block = out.children[b]
-    if (!block) continue
+  for (const { path, block } of blocksInRange(docNode, from.path, to.path)) {
     const len = blockLength(block)
-    const localFrom = b === from.block ? from.offset : 0
-    const localTo = b === to.block ? to.offset : len
-    const middle = sliceSpans(block.children, localFrom, localTo).map((span) => {
+    const localFrom = pathsEqual(path, from.path) ? from.offset : 0
+    const localTo = pathsEqual(path, to.path) ? to.offset : len
+    const middle = sliceSpans(block.content, localFrom, localTo).map((span) => {
       const withoutType = span.marks.filter((m) => m.type !== mark.type)
       return { ...span, marks: add ? [...withoutType, mark] : withoutType }
     })
-    const children = normalizeSpans([
-      ...sliceSpans(block.children, 0, localFrom),
+    const content = normalizeSpans([
+      ...sliceSpans(block.content, 0, localFrom),
       ...middle,
-      ...sliceSpans(block.children, localTo, len),
+      ...sliceSpans(block.content, localTo, len),
     ])
-    out = replaceBlock(out, b, { ...block, children })
+    out = replaceBlockAt(out, path, (target) => ({ ...target, content }))
   }
   return out
 }
@@ -195,7 +253,7 @@ function applyMarkToRange(docNode: DocNode, from: Position, to: Position, mark: 
 export function toggleMark(state: EditorState, mark: Mark): EditorState {
   const { from, to } = orderedRange(state.doc, state.selection)
   if (comparePositions(from, to) === 0) {
-    const block = state.doc.children[from.block]
+    const block = blockAt(state.doc, from.path)
     if (!block) return state
     const current = state.storedMarks ?? marksAtOffset(block, from.offset)
     const has = current.some((m) => marksEqual(m, mark))
@@ -209,23 +267,36 @@ export function toggleMark(state: EditorState, mark: Mark): EditorState {
 
 function mapSelectedBlocks(state: EditorState, map: (block: BlockNode) => BlockNode): EditorState {
   const { from, to } = orderedRange(state.doc, state.selection)
-  const children = state.doc.children.map((block, i) => (i >= from.block && i <= to.block ? map(block) : block))
-  return { ...state, doc: { ...state.doc, children } }
+  function walk(blocks: BlockNode[], prefix: BlockPath): BlockNode[] {
+    return blocks.map((block, i) => {
+      const path = [...prefix, i]
+      const children = block.children ? walk(block.children, path) : undefined
+      const inRange = comparePaths(path, from.path) >= 0 && comparePaths(path, to.path) <= 0
+      const base = children ? withChildren(block, children) : block
+      return inRange ? withChildren(map(base), base.children) : base
+    })
+  }
+  return { ...state, doc: { ...state.doc, children: walk(state.doc.children, []) } }
 }
 
 export function setHeading(state: EditorState, level: HeadingLevel): EditorState {
   return mapSelectedBlocks(state, (block) => {
     const attrs: HeadingAttrs = { level, ...(block.attrs?.align ? { align: block.attrs.align } : {}) }
-    return { type: 'heading', attrs, children: block.children }
+    return withChildren({ type: 'heading', attrs, content: block.content }, block.children)
   })
 }
 
 export function setParagraph(state: EditorState): EditorState {
-  return mapSelectedBlocks(state, (block) => ({
-    type: 'paragraph',
-    ...(block.attrs?.align ? { attrs: { align: block.attrs.align } } : {}),
-    children: block.children,
-  }))
+  return mapSelectedBlocks(state, (block) =>
+    withChildren(
+      {
+        type: 'paragraph',
+        ...(block.attrs?.align ? { attrs: { align: block.attrs.align } } : {}),
+        content: block.content,
+      },
+      block.children,
+    ),
+  )
 }
 
 export function setAlign(state: EditorState, align: Alignment): EditorState {
@@ -234,7 +305,9 @@ export function setAlign(state: EditorState, align: Alignment): EditorState {
       const attrs: HeadingAttrs = { level: block.attrs.level, ...(align !== 'left' ? { align } : {}) }
       return { ...block, attrs }
     }
-    return align !== 'left' ? { ...block, attrs: { align } } : { type: 'paragraph', children: block.children }
+    if (align !== 'left') return { ...block, attrs: { align } }
+    const { attrs: _attrs, ...rest } = block
+    return rest
   })
 }
 
@@ -267,7 +340,7 @@ export function deleteRange(state: EditorState, from: Position, to: Position): E
 export function isMarkActive(state: EditorState, type: MarkType): boolean {
   const { from, to } = orderedRange(state.doc, state.selection)
   if (comparePositions(from, to) === 0) {
-    const block = state.doc.children[from.block]
+    const block = blockAt(state.doc, from.path)
     if (!block) return false
     const marks = state.storedMarks ?? marksAtOffset(block, from.offset)
     return marks.some((m) => m.type === type)
@@ -276,11 +349,11 @@ export function isMarkActive(state: EditorState, type: MarkType): boolean {
 }
 
 export function selectAll(state: EditorState): EditorState {
-  const lastIndex = state.doc.children.length - 1
-  const last = state.doc.children[lastIndex]
+  const last = lastPath(state.doc)
+  const lastBlock = blockAt(state.doc, last)
   const selection: SelectionRange = {
-    anchor: { block: 0, offset: 0 },
-    head: { block: lastIndex, offset: last ? blockLength(last) : 0 },
+    anchor: { path: [0], offset: 0 },
+    head: { path: last, offset: lastBlock ? blockLength(lastBlock) : 0 },
   }
   return { ...state, selection, storedMarks: null }
 }

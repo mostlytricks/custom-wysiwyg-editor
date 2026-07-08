@@ -38,12 +38,13 @@ export function spansLength(spans: TextSpan[]): number {
   return spans.reduce((sum, span) => sum + span.text.length, 0)
 }
 
+/** Length of a block's own inline text (child blocks are separate positions). */
 export function blockLength(block: BlockNode): number {
-  return spansLength(block.children)
+  return spansLength(block.content)
 }
 
 export function blockText(block: BlockNode): string {
-  return block.children.map((span) => span.text).join('')
+  return block.content.map((span) => span.text).join('')
 }
 
 /** Extracts the spans covering [from, to) as character offsets, splitting spans at the boundaries. */
@@ -67,14 +68,14 @@ export function sliceSpans(spans: TextSpan[], from: number, to: number): TextSpa
  * character before the caret, or of the first character when at the start.
  */
 export function marksAtOffset(block: BlockNode, offset: number): Mark[] {
-  if (block.children.length === 0) return []
+  if (block.content.length === 0) return []
   const at = offset > 0 ? offset - 1 : 0
   let pos = 0
-  for (const span of block.children) {
+  for (const span of block.content) {
     const end = pos + span.text.length
     if (at >= pos && at < end) return span.marks
     pos = end
   }
-  const last = block.children[block.children.length - 1]
+  const last = block.content[block.content.length - 1]
   return last ? last.marks : []
 }

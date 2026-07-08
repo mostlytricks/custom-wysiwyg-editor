@@ -34,8 +34,11 @@ export function serializeBlockToHTML(block: BlockNode): string {
   const tag = block.type === 'heading' ? `h${block.attrs.level}` : 'p'
   const align = block.attrs?.align
   const style = align && align !== 'left' ? ` style="text-align: ${align}"` : ''
-  const content = serializeInlineToHTML(block.children)
-  return `<${tag}${style}>${content}</${tag}>`
+  const content = serializeInlineToHTML(block.content)
+  const own = `<${tag}${style}>${content}</${tag}>`
+  if (!block.children || block.children.length === 0) return own
+  const nested = block.children.map(serializeBlockToHTML).join('\n')
+  return `${own}\n<div class="cwe-children">\n${nested}\n</div>`
 }
 
 export function serializeHTML(docNode: DocNode): string {

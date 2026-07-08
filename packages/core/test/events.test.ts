@@ -23,7 +23,7 @@ describe('Editor events', () => {
     const events: string[] = []
     editor.on('change', () => events.push('change'))
     editor.on('update', () => events.push('update'))
-    editor.commands.setSelection({ anchor: { block: 0, offset: 1 }, head: { block: 0, offset: 3 } })
+    editor.commands.setSelection({ anchor: { path: [0], offset: 1 }, head: { path: [0], offset: 3 } })
     expect(events).toEqual(['update'])
   })
 
@@ -39,7 +39,7 @@ describe('Editor events', () => {
 
   it('exposes mark state for toolbars', () => {
     const editor = mount(doc(paragraph([text('hi', [{ type: 'bold' }])])))
-    editor.commands.setSelection({ anchor: { block: 0, offset: 0 }, head: { block: 0, offset: 2 } })
+    editor.commands.setSelection({ anchor: { path: [0], offset: 0 }, head: { path: [0], offset: 2 } })
     expect(editor.isMarkActive('bold')).toBe(true)
     expect(editor.isMarkActive('italic')).toBe(false)
   })
@@ -54,15 +54,15 @@ describe('Editor events', () => {
     }))
     expect(ok).toBe(true)
     expect(changes).toBe(1)
-    expect(editor.getDoc().children[0]!.children[0]!.text).toBe('rewritten by agent')
+    expect(editor.getDoc().children[0]!.content[0]!.text).toBe('rewritten by agent')
     editor.undo()
-    expect(editor.getDoc().children[0]!.children[0]!.text).toBe('draft')
+    expect(editor.getDoc().children[0]!.content[0]!.text).toBe('draft')
   })
 
   it('aborts a transaction when fn returns null', () => {
     const editor = mount(doc(paragraph([text('keep')])))
     expect(editor.transact(() => null)).toBe(false)
-    expect(editor.getDoc().children[0]!.children[0]!.text).toBe('keep')
+    expect(editor.getDoc().children[0]!.content[0]!.text).toBe('keep')
   })
 
   it('sets placeholder attributes only while empty', () => {

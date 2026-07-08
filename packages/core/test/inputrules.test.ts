@@ -47,7 +47,7 @@ describe('input rules', () => {
 
   it('does not fire the heading rule mid-block or in headings', () => {
     const base = createEditorState(doc(paragraph([text('a')])))
-    const midState = { ...base, selection: { anchor: { block: 0, offset: 1 }, head: { block: 0, offset: 1 } } }
+    const midState = { ...base, selection: { anchor: { path: [0], offset: 1 }, head: { path: [0], offset: 1 } } }
     const mid = type(midState, ' # ')
     expect(mid.doc.children[0]!.type).toBe('paragraph')
     const inHeading = type(createEditorState(doc(heading(2))), '# ')
@@ -56,7 +56,7 @@ describe('input rules', () => {
 
   it('autoformats **bold**', () => {
     const next = type(createEditorState(), 'say **loud** ok')
-    expect(next.doc.children[0]!.children).toEqual([
+    expect(next.doc.children[0]!.content).toEqual([
       { type: 'text', text: 'say ', marks: [] },
       { type: 'text', text: 'loud', marks: [{ type: 'bold' }] },
       { type: 'text', text: ' ok', marks: [] },
@@ -65,12 +65,12 @@ describe('input rules', () => {
 
   it('autoformats *italic* without eating bold syntax', () => {
     const next = type(createEditorState(), '*it*')
-    expect(next.doc.children[0]!.children).toEqual([{ type: 'text', text: 'it', marks: [{ type: 'italic' }] }])
+    expect(next.doc.children[0]!.content).toEqual([{ type: 'text', text: 'it', marks: [{ type: 'italic' }] }])
   })
 
   it('autoformats `code`', () => {
     const next = type(createEditorState(), 'run `x` now')
-    expect(next.doc.children[0]!.children).toEqual([
+    expect(next.doc.children[0]!.content).toEqual([
       { type: 'text', text: 'run ', marks: [] },
       { type: 'text', text: 'x', marks: [{ type: 'code' }] },
       { type: 'text', text: ' now', marks: [] },
@@ -81,7 +81,7 @@ describe('input rules', () => {
     const next = type(createEditorState(), '**b**')
     expect(next.storedMarks).toEqual([])
     const typed = insertText(next, 'x')
-    expect(typed.doc.children[0]!.children).toEqual([
+    expect(typed.doc.children[0]!.content).toEqual([
       { type: 'text', text: 'b', marks: [{ type: 'bold' }] },
       { type: 'text', text: 'x', marks: [] },
     ])

@@ -6,30 +6,30 @@
      reality, Next Step = one item. Trim when Completed > ~6 bullets or file > ~80 lines.
      See workspace CLAUDE.md §6 "Keeping CONTEXT.md small". -->
 
-Last touched: 2026-07-08
+Last touched: 2026-07-09
 
 ## Completed
-- **Adopted the `.gravity/` doc system (v1.8) + registered in the workspace** — `docs/PLAN.md`
-  restructured into `.gravity/IMPLEMENTATION_PLAN.md` (vision + phases + status spine, `git mv`
-  so history survives); two domains minted: `core/SPEC.md` (evidence-tagged engine contract)
-  and `integration/PLAN.md` (the agent-adapter seam — **corrected**: the old plan mistook
-  gravity for an AI runtime; it's this doc system; the editor-side contract table survives
-  as the real seam). Root `CLAUDE.md` is now the router; protocol card at `.gravity/GRAVITY.md`;
-  `AGENTS.md` shim added; junctioned into `active/` + PROJECTS.md row. Committed `f59c15b`.
-- **First release cut — `v0.1.0`** (2026-07-08): release light layer (CHANGELOG + Releasing
-  section), gate green (typecheck + 60/60), annotated tag on `37f10eb`. **Push pending.**
-- **Phases 0–1 shipped** (pre-adoption, PR #1): walking skeleton + Notion feel. Detail: git log
-  + `.gravity/IMPLEMENTATION_PLAN.md`.
+- **`v0.1.0` published** — pushed `main` + tag to `github.com/mostlytricks/custom-wysiwyg-editor`.
+- **Phase 2 groundwork: recursive block tree shipped** (first two Phase 2 checkboxes).
+  Model: inline spans → `content`, nested blocks → optional `children`; positions →
+  `{ path: number[], offset }`; new `model/path.ts` helpers. Rewrote commands (cross-depth
+  delete hoists survivors; split moves children to the new block), view (`data-path`,
+  children render outside the content element), input rules, ui widgets, both exporters
+  (tree semantics provisional until lists). Gate green (typecheck + 70/70, incl. 10 new
+  tree tests); real-browser smoke 13/13 (typing, input rules, Shift+Home+Ctrl+B, undo/redo,
+  merge, slash menu, live exports). `core/SPEC.md` updated same-slice; changelog has the
+  BREAKING entry.
 
 ## Current State
-- 5-package monorepo (core / ui / react / export-markdown / export-html); Phases 0–1 done.
-  Remote `github.com/mostlytricks/custom-wysiwyg-editor`; local `main` at `37f10eb` +
-  tag `v0.1.0`, **not yet pushed**.
-- Gate green 2026-07-08: typecheck clean + 60/60 vitest (`npm install` done in this checkout).
-- Known polish debt: link button uses `window.prompt`; undo after autoformat doesn't restore
-  literal `**` syntax.
+- 5-package monorepo; Phases 0–1 done, Phase 2 checkboxes 1–2 done (tree + paths), rest of
+  Phase 2 (lists, todos, quotes, code blocks, dividers, callouts) not started.
+- No UI produces nesting yet — tree semantics (hoisting, split-children, exporter nesting)
+  are provisional Notion-ish defaults to revisit when list types land (noted in SPEC Gotchas).
+- Known polish debt unchanged: link button uses `window.prompt`; undo after autoformat
+  doesn't restore literal `**` syntax.
 
 ## Next Step
-- **`git push && git push --tags`** to publish `v0.1.0` (the user's checkpoint). Then start
-  **Phase 2 — block tree** (`.gravity/IMPLEMENTATION_PLAN.md`), reading `.gravity/core/SPEC.md`
-  first — a good `patch_slice.py` candidate (anchor on the release tag; no stateful paths).
+- **Phase 2, checkbox 3: bulleted/numbered lists** — new block types on the tree
+  (Tab/Shift+Tab indent via child nesting, input rules `- ` / `1. `), then extend
+  slash menu + exporters (real list indent semantics replace the provisional flattening).
+  Read `.gravity/core/SPEC.md` first.

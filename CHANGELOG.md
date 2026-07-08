@@ -12,7 +12,19 @@ custom-wysiwyg-editor` from the workspace).
 
 ## [Unreleased]
 
-_Nothing yet._
+### Changed
+- **BREAKING — recursive block tree (Phase 2 groundwork).** The document model is now a
+  tree: a block's inline spans moved from `children` to **`content`**, and `children`
+  is an optional array of nested `BlockNode`s. Positions are path-based:
+  `{ block: number, offset }` → **`{ path: number[], offset }`** (`[0]` = first
+  top-level block, `[0, 1]` = its second child). All commands, selection mapping
+  (`data-block` → `data-path` in the rendered DOM), input rules, ui widgets, and both
+  exporters operate on the tree; new path helpers (`blockAt`, `comparePaths`,
+  `blockEntries`, `replaceBlockAt`, …) are exported from `@custom-wysiwyg/core`.
+  Editing behavior over flat documents is unchanged (all v0.1.0 tests pass translated;
+  real-browser smoke green). Exporter tree semantics are provisional until list types
+  land: HTML nests children in `<div class="cwe-children">`, Markdown flattens them to
+  sibling blocks.
 
 ## [0.1.0] - 2026-07-08
 

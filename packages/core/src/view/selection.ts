@@ -1,10 +1,12 @@
 import type { Position, SelectionRange } from '../model/position'
+import { attrToPath, pathToAttr } from './render'
 
 /**
  * Maps between DOM selection endpoints and model positions. Blocks are
- * identified by their data-block attribute; offsets are character counts
- * across the block's text nodes, which mirrors how span offsets work in the
- * model.
+ * identified by their data-path attribute ("0", "0.1", …); offsets are
+ * character counts across the block element's text nodes, which mirrors how
+ * span offsets work in the model. A block's nested children render outside
+ * its data-path element, so its text nodes are always its own.
  */
 
 function collectTextNodes(el: Node): Text[] {
@@ -23,7 +25,7 @@ function collectTextNodes(el: Node): Text[] {
 function findBlockElement(root: HTMLElement, node: Node): HTMLElement | null {
   let current: Node | null = node
   while (current && current !== root) {
-    if (current.nodeType === Node.ELEMENT_NODE && (current as HTMLElement).hasAttribute('data-block')) {
+    if (current.nodeType === Node.ELEMENT_NODE && (current as HTMLElement).hasAttribute('data-path')) {
       return current as HTMLElement
     }
     current = current.parentNode
@@ -31,25 +33,36 @@ function findBlockElement(root: HTMLElement, node: Node): HTMLElement | null {
   return null
 }
 
+/** The first block element inside `el` (or `el` itself when it is one). */
+function firstBlockWithin(el: Element): HTMLElement | null {
+  if (el.hasAttribute('data-path')) return el as HTMLElement
+  return el.querySelector<HTMLElement>('[data-path]')
+}
+
 export function domPointToPosition(root: HTMLElement, node: Node, offset: number): Position | null {
-  if (node === root) {
-    // Selection landed between blocks; snap to the nearest block start.
-    const blockCount = root.children.length
-    if (blockCount === 0) return null
-    return { block: Math.max(0, Math.min(offset, blockCount - 1)), offset: 0 }
-  }
   const blockEl = findBlockElement(root, node)
-  if (!blockEl) return null
-  const blockIndex = Number(blockEl.getAttribute('data-block'))
-  if (Number.isNaN(blockIndex)) return null
+  if (!blockEl) {
+    // Selection landed between blocks (on the root or a wrapper); snap to the
+    // start of the nearest block inside the child at that boundary.
+    if (node.nodeType !== Node.ELEMENT_NODE) return null
+    const el = node as Element
+    const childCount = el.children.length
+    if (childCount === 0) return null
+    const child = el.children[Math.max(0, Math.min(offset, childCount - 1))]!
+    const target = firstBlockWithin(child)
+    const path = target && attrToPath(target.getAttribute('data-path') ?? '')
+    return path ? { path, offset: 0 } : null
+  }
+  const path = attrToPath(blockEl.getAttribute('data-path') ?? '')
+  if (!path) return null
 
   if (node.nodeType === Node.TEXT_NODE) {
     let acc = 0
     for (const textNode of collectTextNodes(blockEl)) {
-      if (textNode === node) return { block: blockIndex, offset: acc + offset }
+      if (textNode === node) return { path, offset: acc + offset }
       acc += textNode.nodeValue?.length ?? 0
     }
-    return { block: blockIndex, offset: acc }
+    return { path, offset: acc }
   }
 
   // Element point: count the text contained in everything before childNodes[offset].
@@ -67,11 +80,11 @@ export function domPointToPosition(root: HTMLElement, node: Node, offset: number
     return false
   }
   walk(blockEl)
-  return { block: blockIndex, offset: acc }
+  return { path, offset: acc }
 }
 
 export function positionToDOMPoint(root: HTMLElement, pos: Position): { node: Node; offset: number } | null {
-  const blockEl = root.querySelector(`[data-block="${pos.block}"]`)
+  const blockEl = root.querySelector(`[data-path="${pathToAttr(pos.path)}"]`)
   if (!blockEl) return null
   let acc = 0
   for (const textNode of collectTextNodes(blockEl)) {

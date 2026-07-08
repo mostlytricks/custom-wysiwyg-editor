@@ -3,6 +3,10 @@
  * truth for editor content. The contenteditable layer is only a view over it,
  * and every exporter serializes from it, so output is deterministic across
  * browsers.
+ *
+ * Blocks form a recursive tree: `content` holds a block's own inline text
+ * (runs of marked spans), `children` holds nested blocks (list nesting,
+ * toggle bodies, …). Positions address blocks by path — see model/path.ts.
  */
 
 export type Alignment = 'left' | 'center' | 'right' | 'justify'
@@ -48,13 +52,15 @@ export interface HeadingAttrs {
 export interface ParagraphNode {
   type: 'paragraph'
   attrs?: ParagraphAttrs
-  children: TextSpan[]
+  content: TextSpan[]
+  children?: BlockNode[]
 }
 
 export interface HeadingNode {
   type: 'heading'
   attrs: HeadingAttrs
-  children: TextSpan[]
+  content: TextSpan[]
+  children?: BlockNode[]
 }
 
 export type BlockNode = ParagraphNode | HeadingNode
@@ -73,12 +79,27 @@ export function text(content: string, marks: Mark[] = []): TextSpan {
   return { type: 'text', text: content, marks }
 }
 
-export function paragraph(children: TextSpan[] = [], attrs?: ParagraphAttrs): ParagraphNode {
-  return attrs ? { type: 'paragraph', attrs, children } : { type: 'paragraph', children }
+export function paragraph(content: TextSpan[] = [], attrs?: ParagraphAttrs, children?: BlockNode[]): ParagraphNode {
+  return {
+    type: 'paragraph',
+    ...(attrs ? { attrs } : {}),
+    content,
+    ...(children && children.length > 0 ? { children } : {}),
+  }
 }
 
-export function heading(level: HeadingLevel, children: TextSpan[] = [], attrs?: Omit<HeadingAttrs, 'level'>): HeadingNode {
-  return { type: 'heading', attrs: { level, ...attrs }, children }
+export function heading(
+  level: HeadingLevel,
+  content: TextSpan[] = [],
+  attrs?: Omit<HeadingAttrs, 'level'>,
+  children?: BlockNode[],
+): HeadingNode {
+  return {
+    type: 'heading',
+    attrs: { level, ...attrs },
+    content,
+    ...(children && children.length > 0 ? { children } : {}),
+  }
 }
 
 export function doc(...blocks: BlockNode[]): DocNode {

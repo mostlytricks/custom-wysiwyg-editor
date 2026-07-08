@@ -21,7 +21,7 @@ export function createEditorState(docNode?: DocNode): EditorState {
   const documentNode = docNode ?? emptyDoc()
   return {
     doc: documentNode,
-    selection: { anchor: { block: 0, offset: 0 }, head: { block: 0, offset: 0 } },
+    selection: { anchor: { path: [0], offset: 0 }, head: { path: [0], offset: 0 } },
     storedMarks: null,
   }
 }

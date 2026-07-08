@@ -234,9 +234,13 @@ export class Editor {
 
   private renderView(): void {
     const documentRef = this.dom.ownerDocument
-    this.dom.replaceChildren(...this.state.doc.children.map((block, i) => renderBlock(documentRef, block, i)))
+    this.dom.replaceChildren(...this.state.doc.children.map((block, i) => renderBlock(documentRef, block, [i])))
     const first = this.state.doc.children[0]
-    const isEmpty = this.state.doc.children.length === 1 && first?.type === 'paragraph' && first.children.length === 0
+    const isEmpty =
+      this.state.doc.children.length === 1 &&
+      first?.type === 'paragraph' &&
+      first.content.length === 0 &&
+      (first.children?.length ?? 0) === 0
     if (isEmpty) this.dom.setAttribute('data-empty', 'true')
     else this.dom.removeAttribute('data-empty')
     if (this.hasFocus()) applyDOMSelection(this.dom, this.state.selection)

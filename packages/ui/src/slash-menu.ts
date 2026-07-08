@@ -1,5 +1,5 @@
 import type { Editor, Position } from '@custom-wysiwyg/core'
-import { blockText, selectionIsCollapsed } from '@custom-wysiwyg/core'
+import { blockAt, blockText, selectionIsCollapsed } from '@custom-wysiwyg/core'
 import { clampToViewport, selectionRect } from './position'
 import { injectStyles } from './styles'
 
@@ -99,7 +99,7 @@ export class SlashMenu {
       return
     }
     const head = state.selection.head
-    const block = state.doc.children[head.block]
+    const block = blockAt(state.doc, head.path)
     if (!block) {
       this.close()
       return
@@ -113,7 +113,7 @@ export class SlashMenu {
     }
     if (this.dismissed) return
     const query = match[1] ?? ''
-    this.slashFrom = { block: head.block, offset: head.offset - query.length - 1 }
+    this.slashFrom = { path: head.path, offset: head.offset - query.length - 1 }
     this.filtered = filterSlashItems(this.items, query)
     this.activeIndex = Math.min(this.activeIndex, Math.max(0, this.filtered.length - 1))
     if (!this.open) this.activeIndex = 0

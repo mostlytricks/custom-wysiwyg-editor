@@ -20,6 +20,7 @@ export { doc, emptyDoc, heading, paragraph, text } from './model/types'
 
 export type { Position, SelectionRange } from './model/position'
 export {
+  clampPath,
   clampPosition,
   collapsedSelection,
   comparePositions,
@@ -28,6 +29,26 @@ export {
   selectionIsCollapsed,
   selectionsEqual,
 } from './model/position'
+
+export type { BlockPath } from './model/path'
+export {
+  blockAt,
+  blockEntries,
+  blocksInRange,
+  comparePaths,
+  firstPath,
+  insertBlockAfter,
+  isAncestorOrSelf,
+  lastPath,
+  nextPath,
+  parentPath,
+  pathsEqual,
+  previousPath,
+  removeBlockAt,
+  replaceBlockAt,
+  siblingAfter,
+  spliceBlocksAt,
+} from './model/path'
 
 export {
   blockLength,
@@ -65,7 +86,7 @@ export {
 
 export { runInputRules } from './inputrules'
 
-export { renderBlock, renderSpan } from './view/render'
+export { attrToPath, pathToAttr, renderBlock, renderSpan } from './view/render'
 export { applyDOMSelection, domPointToPosition, positionToDOMPoint, readDOMSelection } from './view/selection'
 
 export type { EditorEventType, EditorOptions } from './editor'

@@ -58,14 +58,16 @@ export function serializeInlineToMarkdown(spans: TextSpan[]): string {
 
 export function serializeBlockToMarkdown(block: BlockNode, options: MarkdownSerializeOptions = {}): string {
   const align = block.attrs?.align
-  if (align && align !== 'left' && options.alignedBlocks !== 'plain') {
-    return serializeBlockToHTML(block)
-  }
-  const inline = serializeInlineToMarkdown(block.children)
-  if (block.type === 'heading') {
-    return `${'#'.repeat(block.attrs.level)} ${inline}`
-  }
-  return escapeBlockStart(inline)
+  const own =
+    align && align !== 'left' && options.alignedBlocks !== 'plain'
+      ? serializeBlockToHTML({ ...block, children: undefined })
+      : block.type === 'heading'
+        ? `${'#'.repeat(block.attrs.level)} ${serializeInlineToMarkdown(block.content)}`
+        : escapeBlockStart(serializeInlineToMarkdown(block.content))
+  if (!block.children || block.children.length === 0) return own
+  // Markdown has no syntax for generic block nesting (indentation belongs to
+  // list items, which Phase 2 adds); nested children flatten to siblings.
+  return [own, ...block.children.map((child) => serializeBlockToMarkdown(child, options))].join('\n\n')
 }
 
 export function serializeMarkdown(docNode: DocNode, options: MarkdownSerializeOptions = {}): string {
