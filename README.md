@@ -101,6 +101,7 @@ Markdown has no alignment syntax, so aligned blocks fall back to inline HTML (Co
 
 - Typing, Enter (block split), Backspace/Delete (incl. cross-block merge), paste as plain text
 - Bold / italic / inline code / links; Cmd/Ctrl+B, Cmd/Ctrl+I; stored marks (toggle then type)
+- **Text color, highlight, and font size** via the bubble-menu palette — exports as `<span style>` in HTML, inline-HTML fallback in Markdown (`styledText: 'plain'` to drop)
 - Paragraphs, headings h1–h3, text alignment
 - **Bulleted & numbered lists** with Tab/Shift+Tab nesting, `- `/`1. ` shortcuts, and list-aware Enter/Backspace (empty item exits, marker strips before merge)
 - Undo/redo with typing coalescing (Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z)

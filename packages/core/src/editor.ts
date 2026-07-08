@@ -1,4 +1,4 @@
-import type { Alignment, DocNode, HeadingLevel, ListKind, Mark, MarkType } from './model/types'
+import type { Alignment, DocNode, FontSizeToken, HeadingLevel, ListKind, Mark, MarkType } from './model/types'
 import type { Position, SelectionRange } from './model/position'
 import { selectionsEqual } from './model/position'
 import * as commands from './commands'
@@ -177,6 +177,26 @@ export class Editor {
     toggleItalic: (): boolean => this.apply(commands.toggleMark(this.state, { type: 'italic' })),
     toggleCode: (): boolean => this.apply(commands.toggleMark(this.state, { type: 'code' })),
     setLink: (href: string): boolean => this.apply(commands.toggleMark(this.state, { type: 'link', attrs: { href } })),
+    applyMark: (mark: Mark): boolean => this.apply(commands.applyMark(this.state, mark)),
+    removeMark: (type: MarkType): boolean => this.apply(commands.removeMark(this.state, type)),
+    setColor: (value: string | null): boolean =>
+      this.apply(
+        value === null
+          ? commands.removeMark(this.state, 'color')
+          : commands.applyMark(this.state, { type: 'color', attrs: { value } }),
+      ),
+    setHighlight: (value: string | null): boolean =>
+      this.apply(
+        value === null
+          ? commands.removeMark(this.state, 'highlight')
+          : commands.applyMark(this.state, { type: 'highlight', attrs: { value } }),
+      ),
+    setFontSize: (value: FontSizeToken | null): boolean =>
+      this.apply(
+        value === null
+          ? commands.removeMark(this.state, 'fontSize')
+          : commands.applyMark(this.state, { type: 'fontSize', attrs: { value } }),
+      ),
     setHeading: (level: HeadingLevel): boolean => this.apply(commands.setHeading(this.state, level)),
     setParagraph: (): boolean => this.apply(commands.setParagraph(this.state)),
     setList: (kind: ListKind): boolean => this.apply(commands.setList(this.state, kind)),

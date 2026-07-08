@@ -1,6 +1,6 @@
 import type { BlockNode, DocNode, TextSpan } from '@custom-wysiwyg/core'
 import { getMark, hasMarkType } from '@custom-wysiwyg/core'
-import { serializeBlockToHTML } from '@custom-wysiwyg/export-html'
+import { escapeHTML, serializeBlockToHTML, spanStyle } from '@custom-wysiwyg/export-html'
 
 export interface MarkdownSerializeOptions {
   /**
@@ -9,6 +9,12 @@ export interface MarkdownSerializeOptions {
    * renderers. 'plain' drops the alignment and emits normal Markdown.
    */
   alignedBlocks?: 'html' | 'plain'
+  /**
+   * Colored/highlighted/sized text has no Markdown syntax either. 'html'
+   * (default) wraps styled runs in an inline <span style>; 'plain' drops the
+   * styling and emits clean Markdown.
+   */
+  styledText?: 'html' | 'plain'
 }
 
 /** Escape characters that would otherwise be parsed as inline Markdown. */
@@ -30,7 +36,7 @@ function serializeCodeSpan(content: string): string {
   return `${fence}${pad}${content}${pad}${fence}`
 }
 
-export function serializeSpanToMarkdown(span: TextSpan): string {
+export function serializeSpanToMarkdown(span: TextSpan, options: MarkdownSerializeOptions = {}): string {
   let out: string
   if (hasMarkType(span.marks, 'code')) {
     out = serializeCodeSpan(span.text)
@@ -47,13 +53,17 @@ export function serializeSpanToMarkdown(span: TextSpan): string {
     }
     out = `${lead}${wrapped}${trail}`
   }
+  if (options.styledText !== 'plain') {
+    const style = spanStyle(span)
+    if (style) out = `<span style="${escapeHTML(style)}">${out}</span>`
+  }
   const link = getMark(span.marks, 'link')
   if (link) out = `[${out}](${link.attrs.href})`
   return out
 }
 
-export function serializeInlineToMarkdown(spans: TextSpan[]): string {
-  return spans.map(serializeSpanToMarkdown).join('')
+export function serializeInlineToMarkdown(spans: TextSpan[], options: MarkdownSerializeOptions = {}): string {
+  return spans.map((span) => serializeSpanToMarkdown(span, options)).join('')
 }
 
 function serializeOwnLine(block: BlockNode, options: MarkdownSerializeOptions): string {
@@ -61,8 +71,8 @@ function serializeOwnLine(block: BlockNode, options: MarkdownSerializeOptions): 
   if (align && align !== 'left' && options.alignedBlocks !== 'plain' && block.type !== 'listItem') {
     return serializeBlockToHTML({ ...block, children: undefined })
   }
-  if (block.type === 'heading') return `${'#'.repeat(block.attrs.level)} ${serializeInlineToMarkdown(block.content)}`
-  return escapeBlockStart(serializeInlineToMarkdown(block.content))
+  if (block.type === 'heading') return `${'#'.repeat(block.attrs.level)} ${serializeInlineToMarkdown(block.content, options)}`
+  return escapeBlockStart(serializeInlineToMarkdown(block.content, options))
 }
 
 /**
@@ -78,7 +88,7 @@ function serializeBlockSequence(blocks: BlockNode[], options: MarkdownSerializeO
     if (block.type === 'listItem') {
       ordinal = block.attrs.kind === 'ordered' ? ordinal + 1 : 0
       const marker = block.attrs.kind === 'ordered' ? `${ordinal}. ` : '- '
-      let text = `${indent}${marker}${serializeInlineToMarkdown(block.content)}`
+      let text = `${indent}${marker}${serializeInlineToMarkdown(block.content, options)}`
       if (block.children && block.children.length > 0) {
         text += '\n' + serializeBlockSequence(block.children, options, indent + ' '.repeat(marker.length))
       }

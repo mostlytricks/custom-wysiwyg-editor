@@ -1,5 +1,5 @@
 import type { BlockNode, DocNode, ListItemNode, TextSpan } from '@custom-wysiwyg/core'
-import { getMark, hasMarkType } from '@custom-wysiwyg/core'
+import { FONT_SIZES, getMark, hasMarkType } from '@custom-wysiwyg/core'
 
 /**
  * Serializes documents to clean semantic HTML. Works on the model only — no
@@ -16,11 +16,25 @@ export function escapeHTML(value: string): string {
     .replace(/'/g, '&#39;')
 }
 
+/** Combined inline style for the span's valued style marks, or ''. */
+export function spanStyle(span: TextSpan): string {
+  const declarations: string[] = []
+  const color = getMark(span.marks, 'color')
+  if (color) declarations.push(`color: ${color.attrs.value}`)
+  const highlight = getMark(span.marks, 'highlight')
+  if (highlight) declarations.push(`background-color: ${highlight.attrs.value}`)
+  const fontSize = getMark(span.marks, 'fontSize')
+  if (fontSize) declarations.push(`font-size: ${FONT_SIZES[fontSize.attrs.value]}`)
+  return declarations.join('; ')
+}
+
 export function serializeSpanToHTML(span: TextSpan): string {
   let out = escapeHTML(span.text)
   if (hasMarkType(span.marks, 'code')) out = `<code>${out}</code>`
   if (hasMarkType(span.marks, 'italic')) out = `<em>${out}</em>`
   if (hasMarkType(span.marks, 'bold')) out = `<strong>${out}</strong>`
+  const style = spanStyle(span)
+  if (style) out = `<span style="${escapeHTML(style)}">${out}</span>`
   const link = getMark(span.marks, 'link')
   if (link) out = `<a href="${escapeHTML(link.attrs.href)}">${out}</a>`
   return out

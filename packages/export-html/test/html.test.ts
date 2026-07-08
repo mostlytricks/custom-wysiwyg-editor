@@ -56,3 +56,28 @@ describe('lists', () => {
     expect(out).toBe('<ul>\n<li style="text-align: center">c</li>\n</ul>')
   })
 })
+
+describe('styled text', () => {
+  const red = { type: 'color', attrs: { value: '#e03e3e' } } as const
+  const mark = { type: 'highlight', attrs: { value: '#fbf3db' } } as const
+  const huge = { type: 'fontSize', attrs: { value: 'huge' } } as const
+
+  it('composes color, highlight, and size into one span style', () => {
+    const out = serializeHTML(doc(paragraph([text('wow', [red, mark, huge])])))
+    expect(out).toBe(
+      '<p><span style="color: #e03e3e; background-color: #fbf3db; font-size: 1.5em">wow</span></p>',
+    )
+  })
+
+  it('keeps emphasis inside the styled span', () => {
+    const out = serializeHTML(doc(paragraph([text('b', [{ type: 'bold' }, red])])))
+    expect(out).toBe('<p><span style="color: #e03e3e"><strong>b</strong></span></p>')
+  })
+
+  it('escapes hostile style values', () => {
+    const evil = { type: 'color', attrs: { value: 'red" onmouseover="x' } } as const
+    const out = serializeHTML(doc(paragraph([text('t', [evil])])))
+    expect(out).not.toContain('onmouseover="x')
+    expect(out).toContain('&quot;')
+  })
+})

@@ -39,9 +39,46 @@ const CSS = `
 }
 .cwe-bubble {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   padding: 3px;
+}
+.cwe-bubble-row {
+  display: flex;
+  align-items: center;
   gap: 1px;
+}
+.cwe-palette {
+  display: grid;
+  gap: 5px;
+  border-top: 1px solid rgba(55, 53, 47, 0.15);
+  margin-top: 4px;
+  padding: 6px 4px 3px;
+}
+.cwe-palette-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cwe-palette-label {
+  font-size: 11px;
+  color: #9b9a97;
+  width: 32px;
+  flex-shrink: 0;
+}
+.cwe-bubble button.cwe-swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgba(55, 53, 47, 0.2);
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1;
+}
+.cwe-bubble button.cwe-size {
+  font-size: 11px;
+  padding: 3px 7px;
+  border: 1px solid rgba(55, 53, 47, 0.2);
+  border-radius: 4px;
 }
 .cwe-bubble button {
   font: inherit;

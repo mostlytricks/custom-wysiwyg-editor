@@ -28,8 +28,38 @@ export interface LinkMark {
   attrs: { href: string }
 }
 
-export type Mark = BoldMark | ItalicMark | CodeMark | LinkMark
+/** Text color. `value` is any CSS color; the UI offers a preset palette. */
+export interface ColorMark {
+  type: 'color'
+  attrs: { value: string }
+}
+
+/** Background highlight. `value` is any CSS color. */
+export interface HighlightMark {
+  type: 'highlight'
+  attrs: { value: string }
+}
+
+/**
+ * Font size as a token, not a CSS length — rendering and export own the
+ * token→size mapping so the model stays presentation-free.
+ */
+export type FontSizeToken = 'small' | 'large' | 'huge'
+
+export interface FontSizeMark {
+  type: 'fontSize'
+  attrs: { value: FontSizeToken }
+}
+
+export type Mark = BoldMark | ItalicMark | CodeMark | LinkMark | ColorMark | HighlightMark | FontSizeMark
 export type MarkType = Mark['type']
+
+/** The single place tokens become sizes (used by the view and the HTML exporter). */
+export const FONT_SIZES: Record<FontSizeToken, string> = {
+  small: '0.85em',
+  large: '1.25em',
+  huge: '1.5em',
+}
 
 /** A run of text sharing the same set of marks. */
 export interface TextSpan {

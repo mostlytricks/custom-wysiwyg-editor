@@ -9,6 +9,14 @@
 Last touched: 2026-07-09
 
 ## Completed
+- **Formatting domain minted + first slice shipped.** New `.gravity/formatting/SPEC.md`
+  (mark model: boolean vs valued marks, replace-not-toggle, export fallback policy);
+  wired into Doc Map, router, status spine, and a Formatting track in the plan.
+  Implemented color/highlight/fontSize marks (tokens via `FONT_SIZES`), `applyMark`/
+  `removeMark` commands, `setColor`/`setHighlight`/`setFontSize` (null = remove),
+  bubble-menu palette, `<span style>` HTML export (escaped), Markdown span fallback
+  with `styledText: 'plain'` opt-out. Gate green: 105/105 (11 new); browser smoke
+  50/50 (10 new style checks incl. replace semantics, compose, reset, undo).
 - **Phase 2 groundwork: recursive block tree shipped** (checkboxes 1–2; see git history
   for the full slice description).
 - **Phase 2, checkbox 3: bulleted/numbered lists shipped.** `listItem` block type

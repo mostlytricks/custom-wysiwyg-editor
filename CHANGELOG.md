@@ -13,6 +13,16 @@ custom-wysiwyg-editor` from the workspace).
 ## [Unreleased]
 
 ### Added
+- **Text color, highlight, and font size** (formatting domain). Three new valued
+  marks — `color { value }`, `highlight { value }`, `fontSize { value: 'small' |
+  'large' | 'huge' }` (token-based; `FONT_SIZES` owns the mapping). New command
+  semantics for valued marks: `applyMark` **replaces** a same-type mark (never
+  toggles off), `removeMark(type)` removes explicitly; editor commands
+  `setColor`/`setHighlight`/`setFontSize` take `value | null`. Bubble menu gains a
+  palette (text colors, highlights, sizes, resets). HTML export composes one
+  `<span style>` per styled run (values escaped); Markdown falls back to inline
+  spans, or drops styling with `{ styledText: 'plain' }`. New
+  `.gravity/formatting/` domain owns the styling contract.
 - **Bulleted & numbered lists** (Phase 2). New `listItem` block type
   (`attrs.kind: 'bullet' | 'ordered'`, Notion-style: no wrapper list node — a list is a
   run of same-kind siblings; nesting is the block tree). Commands

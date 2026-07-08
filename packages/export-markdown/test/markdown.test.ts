@@ -93,3 +93,17 @@ describe('lists', () => {
     expect(out).toBe('before\n\n- item')
   })
 })
+
+describe('styled text', () => {
+  const red = { type: 'color', attrs: { value: '#e03e3e' } } as const
+
+  it('falls back to an inline span by default', () => {
+    const out = serializeMarkdown(doc(paragraph([text('hot', [red, { type: 'bold' }])])))
+    expect(out).toBe('<span style="color: #e03e3e">**hot**</span>')
+  })
+
+  it('drops styling with styledText: plain', () => {
+    const out = serializeMarkdown(doc(paragraph([text('hot', [red, { type: 'bold' }])])), { styledText: 'plain' })
+    expect(out).toBe('**hot**')
+  })
+})

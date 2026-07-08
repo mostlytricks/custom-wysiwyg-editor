@@ -1,4 +1,5 @@
 import type { BlockNode, TextSpan } from '../model/types'
+import { FONT_SIZES } from '../model/types'
 import type { BlockPath } from '../model/path'
 import { getMark, hasMarkType } from '../model/spans'
 
@@ -26,6 +27,17 @@ export function renderSpan(documentRef: Document, span: TextSpan): Node {
   if (hasMarkType(span.marks, 'code')) node = wrap(documentRef, 'code', node)
   if (hasMarkType(span.marks, 'italic')) node = wrap(documentRef, 'em', node)
   if (hasMarkType(span.marks, 'bold')) node = wrap(documentRef, 'strong', node)
+  const color = getMark(span.marks, 'color')
+  const highlight = getMark(span.marks, 'highlight')
+  const fontSize = getMark(span.marks, 'fontSize')
+  if (color || highlight || fontSize) {
+    const styled = documentRef.createElement('span')
+    if (color) styled.style.color = color.attrs.value
+    if (highlight) styled.style.backgroundColor = highlight.attrs.value
+    if (fontSize) styled.style.fontSize = FONT_SIZES[fontSize.attrs.value]
+    styled.appendChild(node)
+    node = styled
+  }
   const link = getMark(span.marks, 'link')
   if (link) {
     const a = documentRef.createElement('a')

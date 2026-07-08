@@ -18,6 +18,7 @@ editing experience**, with a clean **agent-integration seam** so external agents
 | Domain | Status | One line |
 |---|---|---|
 | `core` | ◑ | engine (model/commands/view/input rules) — **tree + paths + bulleted/numbered lists shipped**; next: todos, quotes, code blocks, dividers, callouts. `core/SPEC.md` |
+| `formatting` | ◑ | text styling & alignment — bold/italic/code/link/align shipped; **color/highlight/fontSize marks + bubble palette shipped**; open: font family, block indent. `formatting/SPEC.md` |
 | `integration` | ○ | the agent-adapter seam — editor-side contract shipped; adapter + round-trip smoke not started. `integration/PLAN.md` |
 | ui | ✓ | framework-free widgets (BubbleMenu, SlashMenu) — no folder yet; mint when it grows rules |
 | react | ✓ | bindings (`useEditor`/`<Editor>`, SSR-safe) — no folder yet |
@@ -63,6 +64,14 @@ Rules to respect while doing it: `core/SPEC.md`.
 - [ ] Hover gutter: `⠿` drag handle + `+` insert button
 - [ ] Drag-and-drop block reordering (`moveBlock` command)
 - [ ] Block-level selection mode (click handle / Esc)
+
+## Formatting track (`formatting/SPEC.md`)
+
+- [x] Boolean marks (bold/italic/code) + link; block alignment incl. justify (Phases 0–1)
+- [x] Valued style marks: **text color, highlight, font size** (token-based) — replace-not-toggle semantics, HTML `<span style>` export, Markdown inline-HTML fallback (`styledText: 'plain'` to drop), bubble-menu palette
+- [ ] Font family (token set: default / serif / mono)
+- [ ] Generic block indent for non-list blocks (decide vs. nesting before Phase 4)
+- [ ] Custom color input in the palette
 
 ## Ongoing / parallel track
 

@@ -18,6 +18,7 @@ Docs are grouped by **subject domain**, not by doc-type. A domain folder holds w
   GRAVITY.md                # the protocol card — how to work these docs (versioned copy, never hand-edit)
   IMPLEMENTATION_PLAN.md    # what/next — vision, phase roadmap, per-domain status spine
   core/         SPEC.md     # engine contract: pure commands, model-is-truth, the walls
+  formatting/   SPEC.md     # text styling & alignment: mark model, valued-mark semantics, export fallback policy
   integration/  PLAN.md     # the agent-adapter seam: editor-side contract + round-trip milestone
 ```
 
@@ -28,6 +29,7 @@ No `MISSION.html` / `ARCHITECTURE.html` yet (vision lives in IMPLEMENTATION_PLAN
 | If you're changing… | Read first |
 |---|---|
 | `packages/core` (model, commands, view, input rules, events) | `.gravity/core/SPEC.md` |
+| Marks, colors/sizes, alignment, styling export | `.gravity/formatting/SPEC.md`, then `core/SPEC.md` |
 | Agent/external-actor editing, `transact` semantics, adapter work | `.gravity/integration/PLAN.md`, then `core/SPEC.md` |
 | Phases / what's next / status | `.gravity/IMPLEMENTATION_PLAN.md` |
 | `packages/ui`, `packages/react`, exporters | this file's Layout + Architecture rules (no SPEC yet) |

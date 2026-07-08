@@ -4,7 +4,11 @@ export type {
   BlockType,
   BoldMark,
   CodeMark,
+  ColorMark,
   DocNode,
+  FontSizeMark,
+  FontSizeToken,
+  HighlightMark,
   HeadingAttrs,
   HeadingLevel,
   HeadingNode,
@@ -19,7 +23,7 @@ export type {
   ParagraphNode,
   TextSpan,
 } from './model/types'
-export { doc, emptyDoc, heading, listItem, paragraph, text } from './model/types'
+export { doc, emptyDoc, FONT_SIZES, heading, listItem, paragraph, text } from './model/types'
 
 export type { Position, SelectionRange } from './model/position'
 export {
@@ -70,6 +74,7 @@ export type { EditorState } from './state'
 export { createEditorState } from './state'
 
 export {
+  applyMark,
   deleteBackward,
   deleteForward,
   deleteRange,
@@ -80,6 +85,7 @@ export {
   insertTextInDoc,
   isMarkActive,
   outdentListItem,
+  removeMark,
   selectAll,
   setAlign,
   setHeading,

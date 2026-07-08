@@ -269,6 +269,37 @@ function applyMarkToRange(docNode: DocNode, from: Position, to: Position, mark: 
 }
 
 /**
+ * Sets a mark unconditionally — a valued mark (color, highlight, fontSize,
+ * link) already present with a different value is **replaced**, never
+ * toggled off. Collapsed selections stage it in storedMarks.
+ */
+export function applyMark(state: EditorState, mark: Mark): EditorState {
+  const { from, to } = orderedRange(state.doc, state.selection)
+  if (comparePositions(from, to) === 0) {
+    const block = blockAt(state.doc, from.path)
+    if (!block) return state
+    const current = state.storedMarks ?? marksAtOffset(block, from.offset)
+    return { ...state, storedMarks: [...current.filter((m) => m.type !== mark.type), mark] }
+  }
+  return { doc: applyMarkToRange(state.doc, from, to, mark, true), selection: state.selection, storedMarks: null }
+}
+
+/** Removes every mark of `type` from the selection (or from the stored marks when collapsed). */
+export function removeMark(state: EditorState, type: MarkType): EditorState {
+  const { from, to } = orderedRange(state.doc, state.selection)
+  if (comparePositions(from, to) === 0) {
+    const block = blockAt(state.doc, from.path)
+    if (!block) return state
+    const current = state.storedMarks ?? marksAtOffset(block, from.offset)
+    return { ...state, storedMarks: current.filter((m) => m.type !== type) }
+  }
+  // applyMarkToRange with add=false only uses the mark's type for filtering,
+  // so a minimal carrier of the right type is enough.
+  const carrier = { type } as Mark
+  return { doc: applyMarkToRange(state.doc, from, to, carrier, false), selection: state.selection, storedMarks: null }
+}
+
+/**
  * Toggles a mark. Over a range, adds the mark unless every character already
  * has it. With a collapsed selection, toggles the stored marks that the next
  * typed character will inherit.
