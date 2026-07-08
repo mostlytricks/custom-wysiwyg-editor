@@ -44,6 +44,27 @@ describe('Editor events', () => {
     expect(editor.isMarkActive('italic')).toBe(false)
   })
 
+  it('applies external transactions with history and events', () => {
+    const editor = mount(doc(paragraph([text('draft')])))
+    let changes = 0
+    editor.on('change', () => changes++)
+    const ok = editor.transact((state) => ({
+      ...state,
+      doc: doc(paragraph([text('rewritten by agent')])),
+    }))
+    expect(ok).toBe(true)
+    expect(changes).toBe(1)
+    expect(editor.getDoc().children[0]!.children[0]!.text).toBe('rewritten by agent')
+    editor.undo()
+    expect(editor.getDoc().children[0]!.children[0]!.text).toBe('draft')
+  })
+
+  it('aborts a transaction when fn returns null', () => {
+    const editor = mount(doc(paragraph([text('keep')])))
+    expect(editor.transact(() => null)).toBe(false)
+    expect(editor.getDoc().children[0]!.children[0]!.text).toBe('keep')
+  })
+
   it('sets placeholder attributes only while empty', () => {
     const host = document.createElement('div')
     document.body.appendChild(host)

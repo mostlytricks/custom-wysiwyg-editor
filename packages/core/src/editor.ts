@@ -189,6 +189,16 @@ export class Editor {
     return commands.isMarkActive(this.state, type)
   }
 
+  /**
+   * Applies an externally computed state transition as a normal transaction:
+   * it lands on the undo stack and fires change/update events, exactly like a
+   * keystroke. This is the entry point for programmatic actors — AI agents,
+   * collaboration layers, custom tooling. Return null from `fn` to abort.
+   */
+  transact(fn: (state: EditorState) => EditorState | null, origin = 'external'): boolean {
+    return this.apply(fn(this.state), origin)
+  }
+
   // -------------------------------------------------------------------------
   // State transitions
   // -------------------------------------------------------------------------
