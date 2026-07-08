@@ -113,8 +113,9 @@ Markdown has no alignment syntax, so aligned blocks fall back to inline HTML (Co
 
 ## Roadmap
 
-See **[docs/PLAN.md](docs/PLAN.md)** — the single source of truth for phases,
-status, architecture invariants, and the AI (gravity) integration plan. Highlights:
+See **[.gravity/IMPLEMENTATION_PLAN.md](.gravity/IMPLEMENTATION_PLAN.md)** — the roadmap
+(phases + per-domain status). Architecture invariants live in [CLAUDE.md](CLAUDE.md);
+the agent-integration seam in [.gravity/integration/PLAN.md](.gravity/integration/PLAN.md). Highlights:
 
 - Phase 2: nested block tree → lists, to-dos, quotes, code blocks, callouts
 - Phase 3: tables (GFM export with column alignment)
