@@ -12,6 +12,8 @@ custom-wysiwyg-editor` from the workspace).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-09
+
 ### Added
 - **Tables** (Phase 3). `table` → `tableRow` → `tableCell` as ordinary tree
   nodes, so paths, selection mapping, and marks work unchanged. First row is the
