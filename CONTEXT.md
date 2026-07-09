@@ -9,6 +9,9 @@
 Last touched: 2026-07-09
 
 ## Completed
+- **v0.2.2 cut** (patch: agent adapter is a feature, no breaking). Three tags now
+  pending owner push after merge: v0.2.0 → 5bbf7dc, v0.2.1 → 555cbaf, v0.2.2 →
+  the `release: v0.2.2` commit.
 - **Agent adapter shipped — every planned arc is now done.** Pipe milestone proven
   in Chromium (transact edit + exactly-one change event + byte-identical undo),
   then `@custom-wysiwyg/agent-adapter` (7th pkg) designed from that usage:

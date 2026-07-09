@@ -1,6 +1,6 @@
 {
   "name": "@custom-wysiwyg/agent-adapter",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "The agent seam for @custom-wysiwyg/core: markdown context out, undoable markdown/block edits in, block-buffered streaming",
   "type": "module",
   "main": "./dist/index.cjs",

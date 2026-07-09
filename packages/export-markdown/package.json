@@ -1,6 +1,6 @@
 {
   "name": "@custom-wysiwyg/export-markdown",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Serialize @custom-wysiwyg/core documents to Markdown, with configurable handling of aligned text",
   "type": "module",
   "main": "./dist/index.cjs",

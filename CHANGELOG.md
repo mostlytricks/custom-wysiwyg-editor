@@ -12,6 +12,8 @@ custom-wysiwyg-editor` from the workspace).
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-07-09
+
 ### Added
 - **`@custom-wysiwyg/agent-adapter`** (7th package) — the agent seam, packaged:
   `connectAgent(editor)` gives `getContext()` (markdown + selection + selected
