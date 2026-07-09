@@ -25,13 +25,14 @@ Last touched: 2026-07-09
   local clone after merge).
 
 ## Current State
-- 5-package monorepo. **Phases 0-4 done**: full block set (through tables) + styling
-  marks + slash/bubble/gutter/table-menu UI + Esc block selection, all exporting to
-  Markdown (GFM) + HTML.
+- **7-package monorepo, every planned arc shipped**: Phases 0-4 (full block set through
+  tables, block chrome, Esc selection), styling marks, HTML/Markdown import + rich
+  paste, and the agent adapter — all exporting to Markdown (GFM) + HTML, 180 unit
+  tests + 125 Chromium checks across eleven smoke suites.
 - Table v1 walls (no merges, inline-only cells, select-all stops at tables) are
   documented in `core/SPEC.md` Gotchas.
-- Known polish debt unchanged: link button uses `window.prompt`; undo after autoformat
-  doesn't restore literal `**` syntax; no HTML/Markdown import yet.
+- Known polish debt: link button uses `window.prompt`; undo after autoformat doesn't
+  restore literal `**` syntax.
 
 ## Next Step
 - **First live agent pass** (owner's call per `integration/PLAN.md`: Claude via MCP

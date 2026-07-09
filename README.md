@@ -123,9 +123,8 @@ See **[.gravity/IMPLEMENTATION_PLAN.md](.gravity/IMPLEMENTATION_PLAN.md)** — t
 (phases + per-domain status). Architecture invariants live in [CLAUDE.md](CLAUDE.md);
 the agent-integration seam in [.gravity/integration/PLAN.md](.gravity/integration/PLAN.md). Highlights:
 
-- Phases 2–3 ✅ complete: tree, lists, to-dos, quotes, code blocks, dividers, callouts, tables
-- Phase 4: block handles — drag to reorder, hover `+` to insert
-- All planned arcs shipped ✅ — open: first live LLM session, font family, publishing setup
+- Phases 0–4 ✅ + import + agent adapter — all planned arcs shipped
+- Open: first live LLM session, font family, custom colors, publishing setup (npm scope)
 
 ## Development
 
