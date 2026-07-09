@@ -44,7 +44,7 @@ Gate first — *is it a domain?* (own principle, rules worth a SPEC, a multi-ste
 
 ```bash
 npm install          # workspace deps
-npm run build        # tsup, runs packages in dependency order (core → ui → exporters → import → react)
+npm run build        # tsup, runs packages in dependency order (core → ui → exporters → import → agent-adapter → react)
 npm test             # vitest: packages/*/test (DOM tests via happy-dom)
 npm run typecheck    # strict tsc across all packages
 ```
@@ -56,6 +56,7 @@ npm run typecheck    # strict tsc across all packages
 - `packages/react` — React bindings + wrappers. `'use client'` is added by tsup banner.
 - `packages/export-markdown`, `packages/export-html` — serializers (model in, string out; no DOM).
 - `packages/import-markdown` — Markdown → model parser (the GFM subset the exporter emits). HTML → model lives in core (`parse/html.ts`, powers rich paste).
+- `packages/agent-adapter` — the agent seam: markdown context out, undoable markdown/block/stream edits in (see `.gravity/integration/PLAN.md`).
 - `examples/vanilla/index.html` — demo used by the Playwright smoke tests (loads `dist/*.global.js`, so build first).
 
 ## Architecture rules

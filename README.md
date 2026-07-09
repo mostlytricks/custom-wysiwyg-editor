@@ -14,6 +14,7 @@ packages/
   export-markdown/  @custom-wysiwyg/export-markdown  model → Markdown
   export-html/      @custom-wysiwyg/export-html      model → clean HTML
   import-markdown/  @custom-wysiwyg/import-markdown  Markdown → model (HTML → model lives in core)
+  agent-adapter/    @custom-wysiwyg/agent-adapter    agent seam: context out, undoable markdown/stream edits in
 ```
 
 Every package ships ESM + CJS + type declarations; `core` and the exporters also ship self-contained IIFE bundles for `<script>` embedding.
@@ -124,7 +125,7 @@ the agent-integration seam in [.gravity/integration/PLAN.md](.gravity/integratio
 
 - Phases 2–3 ✅ complete: tree, lists, to-dos, quotes, code blocks, dividers, callouts, tables
 - Phase 4: block handles — drag to reorder, hover `+` to insert
-- Parallel: gravity adapter (`editor.transact` + importers close the loop)
+- All planned arcs shipped ✅ — open: first live LLM session, font family, publishing setup
 
 ## Development
 

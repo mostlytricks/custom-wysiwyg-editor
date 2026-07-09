@@ -19,7 +19,7 @@ editing experience**, with a clean **agent-integration seam** so external agents
 |---|---|---|
 | `core` | ✓ | engine (model/commands/view/input rules/parseHTML) — **Phases 2–4 complete**: tree, paths, full block set incl. tables, block chrome, rich paste. `core/SPEC.md` |
 | `formatting` | ◑ | text styling & alignment — bold/italic/code/link/align shipped; **color/highlight/fontSize marks + bubble palette shipped**; open: font family, block indent. `formatting/SPEC.md` |
-| `integration` | ○ | the agent-adapter seam — editor-side contract shipped; adapter + round-trip smoke not started. `integration/PLAN.md` |
+| `integration` | ✓ | the agent-adapter seam — pipe proven, `@custom-wysiwyg/agent-adapter` shipped (context out, undoable markdown/stream edits in), scripted demo session; open: first live LLM pass. `integration/PLAN.md` |
 | ui | ✓ | framework-free widgets (BubbleMenu, SlashMenu) — no folder yet; mint when it grows rules |
 | react | ✓ | bindings (`useEditor`/`<Editor>`, SSR-safe) — no folder yet |
 | export | ✓ | markdown + html serializers + markdown importer — no folder yet |
@@ -78,6 +78,6 @@ Rules to respect while doing it: `core/SPEC.md`.
 ## Ongoing / parallel track
 
 - [x] HTML & Markdown **import**: `parseHTML` in core (inverse of the view; powers rich paste — clipboard HTML becomes real blocks, plain text stays the fallback) + `@custom-wysiwyg/import-markdown` (`parseMarkdown`, the exported GFM subset; inline HTML degrades to plain text). `insertBlocks` command splices pastes (inline for single paragraphs, split-and-insert otherwise; cell walls hold). Round-trip tested both ways
-- [ ] **Agent adapter** (`integration/PLAN.md`) — round-trip smoke, then a real agent driving `transact` edits
+- [x] **Agent adapter** (`integration/PLAN.md`) — pipe proven + `@custom-wysiwyg/agent-adapter` + scripted demo session (first live LLM pass stays open there)
 - [ ] Publishing setup: npm scope, versioning (changesets), docs site
 - [ ] Undo of input rules restores literal syntax; inline link editor

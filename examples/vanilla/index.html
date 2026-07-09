@@ -72,6 +72,7 @@
     <div class="hint">
       Type <kbd>/</kbd> for blocks · select text for the toolbar · markdown shortcuts:
       <kbd># </kbd> heading, <kbd>**bold**</kbd>, <kbd>*italic*</kbd>, <kbd>`code`</kbd>
+      · <button id="agent-demo" style="font: inherit; border: 1px solid #ccc; border-radius: 6px; background: #fff; padding: 1px 8px; cursor: pointer;">🤖 Agent demo</button>
     </div>
     <div id="editor"></div>
 
@@ -90,6 +91,7 @@
     <script src="../../packages/ui/dist/index.global.js"></script>
     <script src="../../packages/export-markdown/dist/index.global.js"></script>
     <script src="../../packages/export-html/dist/index.global.js"></script>
+    <script src="../../packages/agent-adapter/dist/index.global.js"></script>
     <script>
       const { Editor, doc: d, paragraph, heading, text } = CustomWysiwyg
       const { BubbleMenu, SlashMenu, BlockGutter, TableMenu } = CustomWysiwygUI
@@ -125,6 +127,26 @@
       new SlashMenu(editor)
       new BlockGutter(editor)
       new TableMenu(editor)
+
+      // Scripted agent session: reads context, streams markdown back in
+      // block-sized undoable transactions — the full adapter round trip.
+      const agent = CustomWysiwygAgent.connectAgent(editor)
+      document.getElementById('agent-demo').addEventListener('click', () => {
+        const context = agent.getContext()
+        const summary = `## 🤖 Agent summary\n\nThe document currently has **${context.doc.children.length} blocks**` +
+          (context.selectedText ? ` and you selected *"${context.selectedText}"*` : '') + '.\n\n' +
+          '- [x] read the document as markdown\n- [x] streamed this reply in block-sized transactions\n- [ ] your turn — press Ctrl+Z to undo me block by block\n\n'
+        const writer = agent.createStreamWriter('append')
+        const chunks = summary.match(/[\s\S]{1,12}/g) ?? []
+        let i = 0
+        const timer = setInterval(() => {
+          if (i < chunks.length) writer.write(chunks[i++])
+          else {
+            writer.end()
+            clearInterval(timer)
+          }
+        }, 30)
+      })
     </script>
   </body>
 </html>

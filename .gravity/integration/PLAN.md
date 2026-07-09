@@ -1,6 +1,6 @@
 # integration — PLAN (the agent-adapter seam)
 
-Status: ○ planned <!-- ○ planned · ◑ building · ✓ shipped — mirror into the IMPLEMENTATION_PLAN.md spine -->
+Status: ✓ shipped <!-- ○ planned · ◑ building · ✓ shipped — mirror into the IMPLEMENTATION_PLAN.md spine -->
 
 > **Correction (2026-07-08).** An earlier version of this plan (written from a remote
 > session that couldn't see `ai-workspace`) assumed "gravity" is an AI runtime that
@@ -41,20 +41,34 @@ buffered into block-sized `transact` calls.
 
 ## Slice (first milestone — prove the pipe, no AI logic)
 
-- **[NEW]** a script that subscribes to `change`, logs `serializeMarkdown(doc)` on
-  every edit, and applies one hardcoded `transact` edit against
-  `examples/vanilla/index.html` (after `npm run build`)
-- When that round-trips: design `@custom-wysiwyg/agent-adapter` (naming decided then,
-  with real requirements in hand — not before)
+- [x] Round-trip pipe proven in Chromium: an external script subscribed to `change`,
+  read markdown context, applied one hardcoded `transact` edit — it rendered, fired
+  exactly one change event, and Ctrl+Z restored the original document byte-for-byte
+- [x] `@custom-wysiwyg/agent-adapter` designed from that usage (name confirmed):
+  `connectAgent(editor)` → `getContext()` (markdown + selection + selected text),
+  `onContext(cb)` (debounced), `applyMarkdown/applyBlocks` with modes
+  `insert | append | replaceDocument` (each ONE undoable transaction, origin
+  'agent'), and `createStreamWriter()` buffering streamed output into block-sized
+  transactions (the SPEC wall, mechanized — flushes on blank-line boundaries)
+- [x] Scripted agent session in the demo: 🤖 button reads real context and streams
+  a summary back in chunks; undo unwinds it batch by batch
 
 ## Verification
 
 1. `npm run build && npm test` — green (the contract surface is typed + tested in core).
 2. Round-trip smoke: run the milestone script → edit appears, `change` fires, undo works.
 
+## Outcome (2026-07-09)
+
+Shipped through the scripted-session milestone. Design finding from real usage:
+`insertBlocks`' paste-oriented inline splice was wrong for streamed continuations
+(a streamed paragraph merged into the previous block) — core gained an
+`{ inline?: boolean }` option; the stream writer always applies block-granular.
+Empty markdown payloads are rejected at the adapter (the parser's empty-doc
+fallback would otherwise read as a valid edit).
+
 ## Open questions
 
-- OPEN: adapter package naming + shape — decide AFTER the round-trip milestone, from
-  real usage (the old plan tried to decide it from guesses about a system it couldn't see).
-- OPEN: which agent drives the first real pass (a Claude Code session via MCP? a local
-  script calling an API?) — user's call when the pipe is proven.
+- OPEN: which REAL agent drives the first live pass (a Claude session via MCP, or a
+  local script calling an API) — user's call; the adapter is agent-agnostic and the
+  demo button shows the full loop with a scripted stand-in.

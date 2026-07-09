@@ -9,20 +9,17 @@
 Last touched: 2026-07-09
 
 ## Completed
+- **Agent adapter shipped — every planned arc is now done.** Pipe milestone proven
+  in Chromium (transact edit + exactly-one change event + byte-identical undo),
+  then `@custom-wysiwyg/agent-adapter` (7th pkg) designed from that usage:
+  context out (markdown/selection), `applyMarkdown` modes as single undoable
+  transactions, block-buffered `StreamWriter`; scripted 🤖 session in the demo.
+  Design finding: core `insertBlocks` needed `{ inline?: boolean }` — streamed
+  continuations must not splice into the previous block. Gate green: 180/180
+  (8 new); browser smoke 125/125 across eleven suites (15 new).
 - **v0.2.1 cut** (patch: import + Phase 4 are features, no breaking — per the
   pre-1.0 rule). Tag pending owner push, same as v0.2.0: from a local clone,
   `git tag v0.2.1 <release-sha> && git push origin v0.2.1`.
-- **HTML & Markdown import shipped** (the compatibility-gap arc). `parseHTML`
-  in core + rich paste via `insertBlocks` (inline splice vs split-and-insert,
-  cell walls hold, plain-text fallback); new `@custom-wysiwyg/import-markdown`
-  package (6th) with `parseMarkdown` for the exported GFM subset; round-trip
-  tests both ways (md→doc→md and doc→html→doc). Gate green: 172/172 (19 new);
-  browser smoke 104/104 across nine suites (10 new: synthetic clipboard
-  pastes, markdown load, undo). happy-dom lacks `:scope` — parser avoids it.
-- **Phase 4 complete.** `selectBlock` command + Esc block selection (escalating,
-  cell-wall aware); `TableMenu` caret-in-table toolbar over the row/column
-  commands; gutter handle-click now reuses `selectBlock`. Gate green: 153/153
-  (3 new); browser smoke 94/94 across eight suites (10 new). Phases 0-4 all done.
 - **v0.2.0 cut** (`release: v0.2.0` on the branch; tag exists locally — the git
   proxy rejects tag pushes (403), so tag `5bbf7dc` as v0.2.0 and push from a
   local clone after merge).
@@ -37,8 +34,8 @@ Last touched: 2026-07-09
   doesn't restore literal `**` syntax; no HTML/Markdown import yet.
 
 ## Next Step
-- **Gravity agent adapter** (`integration/PLAN.md`): round-trip smoke from
-  ai-workspace, then a real agent driving `transact` edits — importers now
-  close the loop (agent returns Markdown → `parseMarkdown` → `insertBlocks`/
-  `transact`). Or: formatting open slices (font family, custom colors), or
-  cut v0.3.0 (import + Phase 4 are ready evidence).
+- **First live agent pass** (owner's call per `integration/PLAN.md`: Claude via MCP
+  or a local API script — the adapter is agent-agnostic). Otherwise: formatting
+  open slices (font family, custom colors), publishing setup (npm scope), or cut
+  the next release when evidence accumulates. Tags v0.2.0/v0.2.1 still pending
+  owner push (see git history for SHAs).

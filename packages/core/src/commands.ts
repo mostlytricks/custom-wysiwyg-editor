@@ -653,7 +653,11 @@ export function outdentListItem(state: EditorState): EditorState | null {
  * marks; anything more splits the current block and inserts the blocks
  * between the halves. Multi-block content never enters a table cell.
  */
-export function insertBlocks(state: EditorState, blocks: BlockNode[]): EditorState {
+export function insertBlocks(
+  state: EditorState,
+  blocks: BlockNode[],
+  options: { /** Splice a lone childless paragraph inline (paste behavior). Default true. */ inline?: boolean } = {},
+): EditorState {
   if (blocks.length === 0) return state
   const { from, to } = orderedRange(state.doc, state.selection)
   if (!sameEditScope(state.doc, from.path, to.path)) return state
@@ -663,7 +667,8 @@ export function insertBlocks(state: EditorState, blocks: BlockNode[]): EditorSta
   if (!target || target.type === 'divider' || target.type === 'table' || target.type === 'tableRow') return state
 
   const first = blocks[0]!
-  const inlineOnly = blocks.length === 1 && first.type === 'paragraph' && (first.children?.length ?? 0) === 0
+  const inlineOnly =
+    (options.inline ?? true) && blocks.length === 1 && first.type === 'paragraph' && (first.children?.length ?? 0) === 0
   if (inlineOnly) {
     const content = normalizeSpans([
       ...sliceSpans(target.content, 0, from.offset),

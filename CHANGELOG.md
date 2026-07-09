@@ -12,6 +12,17 @@ custom-wysiwyg-editor` from the workspace).
 
 ## [Unreleased]
 
+### Added
+- **`@custom-wysiwyg/agent-adapter`** (7th package) — the agent seam, packaged:
+  `connectAgent(editor)` gives `getContext()` (markdown + selection + selected
+  text), debounced `onContext`, `applyMarkdown`/`applyBlocks` with
+  `insert | append | replaceDocument` modes (each a single undoable transaction
+  with origin 'agent'), and `createStreamWriter()` that buffers streamed output
+  into block-sized transactions. Demo gains a 🤖 button running a scripted agent
+  session end to end. Core `insertBlocks` gains an `{ inline?: boolean }` option
+  (streamed continuations must never splice into the previous block); empty
+  markdown payloads are rejected at the adapter.
+
 ## [0.2.1] - 2026-07-09
 
 ### Added

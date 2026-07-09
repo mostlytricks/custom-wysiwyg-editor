@@ -1,0 +1,30 @@
+{
+  "name": "@custom-wysiwyg/agent-adapter",
+  "version": "0.2.1",
+  "description": "The agent seam for @custom-wysiwyg/core: markdown context out, undoable markdown/block edits in, block-buffered streaming",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@custom-wysiwyg/core": "*",
+    "@custom-wysiwyg/export-markdown": "*",
+    "@custom-wysiwyg/import-markdown": "*"
+  },
+  "license": "MIT"
+}

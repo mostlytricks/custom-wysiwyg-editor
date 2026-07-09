@@ -18,6 +18,7 @@
       "@custom-wysiwyg/export-html": ["./packages/export-html/src/index.ts"],
       "@custom-wysiwyg/export-markdown": ["./packages/export-markdown/src/index.ts"],
       "@custom-wysiwyg/import-markdown": ["./packages/import-markdown/src/index.ts"],
+      "@custom-wysiwyg/agent-adapter": ["./packages/agent-adapter/src/index.ts"],
       "@custom-wysiwyg/react": ["./packages/react/src/index.tsx"],
       "@custom-wysiwyg/ui": ["./packages/ui/src/index.ts"]
     }
