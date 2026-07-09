@@ -15,9 +15,9 @@ export interface SlashMenuItem {
 
 export const DEFAULT_SLASH_ITEMS: SlashMenuItem[] = [
   { id: 'text', label: 'Text', icon: 'T', keywords: 'paragraph plain body', run: (e) => e.commands.setParagraph() },
-  { id: 'h1', label: 'Heading 1', icon: 'H1', keywords: 'title big', run: (e) => e.commands.setHeading(1) },
-  { id: 'h2', label: 'Heading 2', icon: 'H2', keywords: 'subtitle', run: (e) => e.commands.setHeading(2) },
-  { id: 'h3', label: 'Heading 3', icon: 'H3', keywords: 'subheading', run: (e) => e.commands.setHeading(3) },
+  { id: 'h1', label: 'Heading 1', icon: 'H1', keywords: 'title big h1', run: (e) => e.commands.setHeading(1) },
+  { id: 'h2', label: 'Heading 2', icon: 'H2', keywords: 'subtitle h2', run: (e) => e.commands.setHeading(2) },
+  { id: 'h3', label: 'Heading 3', icon: 'H3', keywords: 'subheading h3', run: (e) => e.commands.setHeading(3) },
   { id: 'bullet-list', label: 'Bulleted list', icon: '•', keywords: 'unordered ul dash', run: (e) => e.commands.setList('bullet') },
   { id: 'ordered-list', label: 'Numbered list', icon: '1.', keywords: 'ordered ol number', run: (e) => e.commands.setList('ordered') },
   { id: 'todo', label: 'To-do list', icon: '☑', keywords: 'task checkbox check', run: (e) => e.commands.setTodo() },

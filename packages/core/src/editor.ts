@@ -212,6 +212,9 @@ export class Editor {
     setCodeBlock: (language?: string): boolean => this.apply(commands.setCodeBlock(this.state, language)),
     insertDivider: (): boolean => this.apply(commands.insertDivider(this.state)),
     insertTable: (rows?: number, cols?: number): boolean => this.apply(commands.insertTable(this.state, rows, cols)),
+    moveBlock: (from: BlockPath, to: BlockPath, side: 'before' | 'after'): boolean =>
+      this.apply(commands.moveBlock(this.state, from, to, side)),
+    insertParagraphAfter: (): boolean => this.apply(commands.insertParagraphAfter(this.state)),
     addTableRow: (): boolean => this.apply(commands.addTableRow(this.state)),
     addTableColumn: (): boolean => this.apply(commands.addTableColumn(this.state)),
     deleteTableRow: (): boolean => this.apply(commands.deleteTableRow(this.state)),

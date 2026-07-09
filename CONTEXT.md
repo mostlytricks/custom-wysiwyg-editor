@@ -9,20 +9,21 @@
 Last touched: 2026-07-09
 
 ## Completed
+- **v0.2.0 cut** (`release: v0.2.0` on the branch; tag exists locally — the git
+  proxy rejects tag pushes (403), so tag `5bbf7dc` as v0.2.0 and push from a
+  local clone after merge).
+- **Phase 4 first slice: block chrome shipped.** `BlockGutter` widget (hover
+  `+`/`⠿`), `moveBlock` command with guards, HTML5 drag-reorder with drop
+  indicator, handle-click block selection; `+` pre-opens the slash menu; slash
+  matches h1/h2/h3. Gate green: 150/150 (4 new); browser smoke 84/84 across
+  seven suites (7 new). Remaining Phase 4: full block-selection mode (Esc,
+  multi-block), table hover chrome.
 - **Phase 3 complete: tables shipped** (planned in `core/PLAN.tables.md`, outcome
   recorded there). Tables are ordinary tree nodes (table→row→cell) with cell-wall
   guards, Tab/Enter navigation that grows at the edge, row/column commands,
   column alignment on table attrs, GFM + thead/th export. Gate green: 146/146
   (14 new); browser smoke 77/77 across six suites (11 new). SPEC +3 contract
   rows + table gotchas; core spine stays ✓ (Phases 2–3 done).
-- **Phase 2 complete: todo/quote/codeBlock/divider/callout shipped.** Five block
-  types with Notion behaviors (checkbox click-to-toggle via real `<input>` —
-  no text nodes; verbatim code blocks: marks+rules inert, Enter='\n',
-  double-Enter exits; void dividers; emoji callouts). Input rules `[] `/`[x] `/
-  `> `/fence/`--- `; slash items; exit-and-strip Enter/Backspace semantics;
-  both exporters (GFM tasks, prefixed quotes, fences, `<hr>`, `<aside>`).
-  Gate green: 132/132 (27 new); browser smoke 66/66 across five suites
-  (16 new). SPEC Behavioral Contract +5 rows; status spine: core → ✓.
 
 ## Current State
 - 5-package monorepo. Phases 0-3 done: full block set (paragraphs, headings, lists,
@@ -34,8 +35,7 @@ Last touched: 2026-07-09
   doesn't restore literal `**` syntax; no HTML/Markdown import yet.
 
 ## Next Step
-- **Phase 4: blocks as objects** — hover gutter (`⠿` drag handle + `+` insert
-  button), drag-and-drop reordering (`moveBlock` command), block-level selection
-  mode. This is also where table hover chrome (add/remove row/col buttons) lands.
-  Alternatives if preferred: HTML/Markdown import (compatibility gap) or the
+- **Finish Phase 4**: full block-selection mode (Esc enters it, arrow/multi-block
+  selection, Backspace deletes whole blocks) + table hover chrome (add/remove
+  row/column buttons on hover). Alternatives: HTML/Markdown import, or the
   gravity agent adapter (`integration/PLAN.md`).

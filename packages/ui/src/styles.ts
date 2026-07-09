@@ -89,6 +89,48 @@ const CSS = `
   background: rgba(135, 131, 120, 0.09);
   font-weight: 600;
 }
+.cwe-gutter {
+  position: fixed;
+  z-index: 9998;
+  display: flex;
+  gap: 1px;
+  align-items: center;
+}
+.cwe-gutter-btn {
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  padding: 3px 4px;
+  cursor: pointer;
+  color: rgba(55, 53, 47, 0.45);
+}
+.cwe-gutter-btn:hover {
+  background: rgba(55, 53, 47, 0.08);
+  color: rgba(55, 53, 47, 0.8);
+}
+.cwe-gutter-drag {
+  cursor: grab;
+}
+.cwe-drop-indicator {
+  position: fixed;
+  z-index: 9998;
+  height: 3px;
+  border-radius: 2px;
+  background: #4a9fe8;
+  pointer-events: none;
+}
+@media (prefers-color-scheme: dark) {
+  .cwe-gutter-btn {
+    color: rgba(212, 212, 212, 0.45);
+  }
+  .cwe-gutter-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(212, 212, 212, 0.9);
+  }
+}
 .cwe-bubble, .cwe-slash {
   position: fixed;
   z-index: 9999;

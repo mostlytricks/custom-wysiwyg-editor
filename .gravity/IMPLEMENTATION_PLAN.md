@@ -61,9 +61,11 @@ Rules to respect while doing it: `core/SPEC.md`.
 
 ## Phase 4 — Blocks as objects
 
-- [ ] Hover gutter: `⠿` drag handle + `+` insert button
-- [ ] Drag-and-drop block reordering (`moveBlock` command)
-- [ ] Block-level selection mode (click handle / Esc)
+- [x] Hover gutter: `⠿` drag handle + `+` insert button (inserts a paragraph below with the slash menu pre-opened)
+- [x] Drag-and-drop block reordering (`moveBlock` command with subtree, guards vs no-op/descendant/table structure; HTML5 DnD + drop indicator)
+- [x] Click the handle to select the whole block (subtree text selection)
+- [ ] Full block-selection mode (Esc to enter, multi-block, keyboard) — open
+- [ ] Table hover chrome (add/remove row/column buttons) — open
 
 ## Formatting track (`formatting/SPEC.md`)
 

@@ -12,6 +12,7 @@ import {
 } from 'react'
 
 import {
+  BlockGutter as BlockGutterWidget,
   BubbleMenu as BubbleMenuWidget,
   SlashMenu as SlashMenuWidget,
   type BubbleMenuOptions,
@@ -122,5 +123,15 @@ export function SlashMenu({ editor, items }: { editor: CoreEditor | null; items?
     const widget = new SlashMenuWidget(editor, items ? { items } : {})
     return () => widget.destroy()
   }, [editor, items])
+  return null
+}
+
+/** Hover gutter with `+` insert and `⠿` drag-to-reorder (Notion style). */
+export function BlockGutter({ editor }: { editor: CoreEditor | null }) {
+  useEffect(() => {
+    if (!editor) return
+    const widget = new BlockGutterWidget(editor)
+    return () => widget.destroy()
+  }, [editor])
   return null
 }

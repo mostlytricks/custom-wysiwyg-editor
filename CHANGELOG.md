@@ -12,6 +12,16 @@ custom-wysiwyg-editor` from the workspace).
 
 ## [Unreleased]
 
+### Added
+- **Block chrome** (Phase 4). Hover gutter on every top-level block: `+` inserts
+  a paragraph below with the slash menu pre-opened; `⠿` drags to reorder (HTML5
+  DnD with a drop indicator; drops before/after by pointer midpoint) and clicks
+  to select the whole block subtree. New `moveBlock(from, to, side)` command
+  moves a block with its subtree, rejecting no-op, into-own-subtree, and
+  table-structure moves. New `BlockGutter` widget in `@custom-wysiwyg/ui` +
+  `<BlockGutter>` React wrapper. Slash menu now matches `h1`/`h2`/`h3` queries.
+
+
 ## [0.2.0] - 2026-07-09
 
 ### Added

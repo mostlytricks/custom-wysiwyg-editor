@@ -22,6 +22,7 @@ import {
   blocksInRange,
   comparePaths,
   insertBlockAfter,
+  insertBlockAt,
   isAncestorOrSelf,
   lastPath,
   parentPath,
@@ -644,6 +645,30 @@ export function outdentListItem(state: EditorState): EditorState | null {
     },
     storedMarks: state.storedMarks,
   }
+}
+
+/**
+ * Moves the block at `from` (with its subtree) to sit before or after the
+ * block at `to`. Table structure can't be moved or targeted (v1), nor can a
+ * block move into its own subtree.
+ */
+export function moveBlock(state: EditorState, from: BlockPath, to: BlockPath, side: 'before' | 'after'): EditorState | null {
+  const block = blockAt(state.doc, from)
+  const target = blockAt(state.doc, to)
+  if (!block || !target) return null
+  if (pathsEqual(from, to)) return null
+  if (isAncestorOrSelf(from, to)) return null
+  if (cellContext(state.doc, from) || cellContext(state.doc, to)) return null
+  if (block.type === 'tableRow' || block.type === 'tableCell') return null
+  if (target.type === 'tableRow' || target.type === 'tableCell') return null
+
+  const removed = removeBlockAt(state.doc, from)
+  const adjustedTo = adjustPathAfterRemoval(to, from)
+  const parent = parentPath(adjustedTo)
+  const index = adjustedTo[adjustedTo.length - 1]! + (side === 'after' ? 1 : 0)
+  const docNode = insertBlockAt(removed, parent, index, block)
+  const newPath = [...parent, index]
+  return { doc: docNode, selection: collapsedSelection({ path: newPath, offset: 0 }), storedMarks: null }
 }
 
 // ---------------------------------------------------------------------------

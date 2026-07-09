@@ -8,8 +8,10 @@ import {
   deleteBackward,
   divider,
   doc,
+  emptyTable,
   insertDivider,
   insertText,
+  moveBlock,
   paragraph,
   quote,
   setCodeBlock,
@@ -126,5 +128,39 @@ describe('dividers', () => {
     const s = state(doc(divider(), paragraph()), caret([0], 0))
     expect(insertText(s, 'x')).toBe(s)
     expect(blockAt(splitBlock(s).doc, [0])!.type).toBe('divider')
+  })
+})
+
+describe('moveBlock', () => {
+  const three = () => doc(paragraph([text('a')]), paragraph([text('b')]), paragraph([text('c')]))
+
+  it('moves a block after a later sibling', () => {
+    const s = state(three())
+    const next = moveBlock(s, [0], [2], 'after')!
+    expect(next.doc.children.map((b) => blockText(b))).toEqual(['b', 'c', 'a'])
+    expect(next.selection.head).toEqual({ path: [2], offset: 0 })
+  })
+
+  it('moves a block before an earlier sibling', () => {
+    const s = state(three())
+    const next = moveBlock(s, [2], [0], 'before')!
+    expect(next.doc.children.map((b) => blockText(b))).toEqual(['c', 'a', 'b'])
+  })
+
+  it('carries the subtree along', () => {
+    const d = doc(paragraph([text('solo')]), quote([text('q')], undefined, [paragraph([text('kid')])]))
+    const next = moveBlock(state(d), [1], [0], 'before')!
+    expect(next.doc.children[0]!.type).toBe('quote')
+    expect(blockText(blockAt(next.doc, [0, 0])!)).toBe('kid')
+  })
+
+  it('rejects no-op, descendant, and table-structure moves', () => {
+    const s = state(three())
+    expect(moveBlock(s, [0], [0], 'after')).toBeNull()
+    const nested = state(doc(quote([text('q')], undefined, [paragraph([text('kid')])])))
+    expect(moveBlock(nested, [0], [0, 0], 'after')).toBeNull()
+    const withTable = state(doc(paragraph([text('p')]), emptyTable(2, 2)))
+    expect(moveBlock(withTable, [0], [1, 0, 0], 'after')).toBeNull()
+    expect(moveBlock(withTable, [1], [0], 'before')).not.toBeNull() // whole table CAN move
   })
 })
