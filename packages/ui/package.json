@@ -1,6 +1,6 @@
 {
   "name": "@custom-wysiwyg/ui",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Notion-style UI widgets for @custom-wysiwyg/core: bubble toolbar, slash menu. Framework-free DOM components",
   "type": "module",
   "main": "./dist/index.cjs",

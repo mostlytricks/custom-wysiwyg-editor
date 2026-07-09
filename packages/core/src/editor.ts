@@ -320,6 +320,10 @@ export class Editor {
     if (this.options.inputRules !== false) {
       const transformed = runInputRules(inserted, content)
       if (transformed) {
+        // Commit the literal text first (coalescing with prior typing), then the
+        // autoformat as its own undo step — so one undo restores the typed
+        // syntax (e.g. `**bold**`) before a second removes the characters.
+        this.apply(inserted, 'insertText')
         this.apply(transformed, 'inputRule')
         return
       }

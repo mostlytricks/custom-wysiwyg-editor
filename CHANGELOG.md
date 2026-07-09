@@ -12,6 +12,19 @@ custom-wysiwyg-editor` from the workspace).
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-07-09
+
+### Changed
+- **Inline link editor** replaces the `window.prompt` link flow. Clicking the
+  bubble-menu link button opens an in-place URL input that prefills the current
+  href, applies on Enter (or the Apply button), cancels on Esc, and can remove
+  the link — editing an existing link's URL now works (previously toggling it off).
+
+### Fixed
+- **Undo after a markdown autoformat** now restores the literal typed syntax
+  (e.g. `**bold**`) as its own history step before a second undo removes the
+  characters, instead of skipping straight past the syntax.
+
 ## [0.2.2] - 2026-07-09
 
 ### Added

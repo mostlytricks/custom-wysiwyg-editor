@@ -1,9 +1,11 @@
-import type { Editor, FontSizeToken, HeadingLevel } from '@custom-wysiwyg/core'
+import type { Editor, FontSizeToken, HeadingLevel, SelectionRange } from '@custom-wysiwyg/core'
 import { blockAt, getMark, marksAtOffset, selectionIsCollapsed } from '@custom-wysiwyg/core'
 import { clampToViewport, selectionRect } from './position'
 import { injectStyles } from './styles'
 
 interface BubbleButton {
+  /** Stable id for buttons the bubble menu handles specially (e.g. 'link'). */
+  id?: string
   label: string
   title: string
   isActive?: (editor: Editor) => boolean
@@ -36,17 +38,12 @@ const BUTTONS: BubbleButton[] = [
     run: (e) => e.commands.toggleCode(),
   },
   {
+    id: 'link',
     label: '🔗',
     title: 'Link',
     isActive: (e) => e.isMarkActive('link'),
-    run: (e) => {
-      if (e.isMarkActive('link')) {
-        e.commands.setLink('')
-        return
-      }
-      const href = e.dom.ownerDocument.defaultView?.prompt('Link URL')
-      if (href) e.commands.setLink(href)
-    },
+    // Click is intercepted by the bubble menu to open the inline link editor.
+    run: () => {},
   },
   {
     label: 'H1',
@@ -125,6 +122,12 @@ export class BubbleMenu {
   private palette: HTMLElement
   private paletteToggle: HTMLButtonElement
   private paletteOpen = false
+  private linkEditor!: HTMLElement
+  private linkInput!: HTMLInputElement
+  private linkRemove!: HTMLButtonElement
+  private linkOpen = false
+  /** Selection captured when the link editor opened; focusing the input clears the live one. */
+  private linkSelection: SelectionRange | null = null
 
   constructor(editor: Editor, options: BubbleMenuOptions = {}) {
     this.editor = editor
@@ -152,6 +155,10 @@ export class BubbleMenu {
       el.textContent = button.label
       el.title = button.title
       el.addEventListener('click', () => {
+        if (button.id === 'link') {
+          this.toggleLinkEditor()
+          return
+        }
         button.run(this.editor)
         this.update()
       })
@@ -168,17 +175,22 @@ export class BubbleMenu {
     this.paletteToggle.title = 'Color & size'
     this.paletteToggle.addEventListener('click', () => {
       this.paletteOpen = !this.paletteOpen
+      if (this.paletteOpen) this.closeLinkEditor(false)
       this.syncPalette()
     })
     row.appendChild(this.paletteToggle)
 
+    this.linkEditor = this.buildLinkEditor(documentRef)
     this.palette = this.buildPalette(documentRef)
-    this.dom.append(row, this.palette)
+    this.dom.append(row, this.linkEditor, this.palette)
     documentRef.body.appendChild(this.dom)
 
     this.unsubscribers = [
       editor.on('update', () => this.update()),
-      editor.on('blur', () => this.hide()),
+      // Focusing the link input blurs the editor; keep the bubble alive then.
+      editor.on('blur', () => {
+        if (!this.linkOpen) this.hide()
+      }),
     ]
     this.win.addEventListener('scroll', this.onWindowMove, true)
     this.win.addEventListener('resize', this.onWindowMove)
@@ -199,6 +211,97 @@ export class BubbleMenu {
     this.dom.style.display = 'none'
     this.paletteOpen = false
     this.syncPalette()
+    this.closeLinkEditor(false)
+  }
+
+  private buildLinkEditor(documentRef: Document): HTMLElement {
+    const editor = documentRef.createElement('div')
+    editor.className = 'cwe-link-editor'
+    editor.style.display = 'none'
+
+    const input = documentRef.createElement('input')
+    input.type = 'url'
+    input.className = 'cwe-link-input'
+    input.placeholder = 'Paste or type a link…'
+    // The input must take focus on click, so opt out of the bubble's
+    // focus-guard (the dom-level mousedown preventDefault) for it alone.
+    input.addEventListener('mousedown', (e) => e.stopPropagation())
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        this.applyLink()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        this.closeLinkEditor(true)
+      }
+    })
+    this.linkInput = input
+
+    const apply = documentRef.createElement('button')
+    apply.type = 'button'
+    apply.className = 'cwe-link-apply'
+    apply.textContent = 'Apply'
+    apply.title = 'Apply link'
+    apply.addEventListener('click', () => this.applyLink())
+
+    const remove = documentRef.createElement('button')
+    remove.type = 'button'
+    remove.className = 'cwe-link-remove'
+    remove.textContent = 'Remove'
+    remove.title = 'Remove link'
+    remove.addEventListener('click', () => this.commitLink(null))
+    this.linkRemove = remove
+
+    editor.append(input, apply, remove)
+    return editor
+  }
+
+  private toggleLinkEditor(): void {
+    if (this.linkOpen) this.closeLinkEditor(true)
+    else this.openLinkEditor()
+  }
+
+  private openLinkEditor(): void {
+    // Capture the selection rectangle while the editor still owns the DOM
+    // selection — focusing the input moves it out.
+    const rect = selectionRect(this.editor)
+    const state = this.editor.getState()
+    const block = blockAt(state.doc, state.selection.head.path)
+    const marks = block ? marksAtOffset(block, state.selection.head.offset) : []
+    const href = getMark(marks, 'link')?.attrs.href ?? ''
+    this.linkSelection = state.selection
+
+    this.paletteOpen = false
+    this.syncPalette()
+    this.linkInput.value = href
+    this.linkRemove.style.display = href ? '' : 'none'
+    this.linkOpen = true
+    this.linkEditor.style.display = 'flex'
+    if (rect) this.position(rect)
+    this.linkInput.focus()
+    this.linkInput.select()
+  }
+
+  private closeLinkEditor(refocus: boolean): void {
+    if (!this.linkOpen) return
+    this.linkOpen = false
+    this.linkEditor.style.display = 'none'
+    // Return focus (and the selection) to the editor so the caret is restored.
+    if (refocus) this.editor.focus()
+  }
+
+  private applyLink(): void {
+    this.commitLink(this.linkInput.value.trim() || null)
+  }
+
+  private commitLink(href: string | null): void {
+    // Restore the selection captured on open — focusing the input moved the
+    // live selection into it. applyMark replaces an existing link (so editing
+    // a URL just works); a null href removes the link entirely.
+    if (this.linkSelection) this.editor.commands.setSelection(this.linkSelection)
+    if (href) this.editor.commands.applyMark({ type: 'link', attrs: { href } })
+    else this.editor.commands.removeMark('link')
+    this.closeLinkEditor(true)
   }
 
   private buildPalette(documentRef: Document): HTMLElement {
@@ -280,6 +383,9 @@ export class BubbleMenu {
   }
 
   private update(): void {
+    // While the link editor is open the selection is parked in the input, so
+    // freeze the bubble where it is rather than re-reading a stale rect.
+    if (this.linkOpen) return
     const state = this.editor.getState()
     if (selectionIsCollapsed(state.selection)) {
       this.hide()
@@ -295,6 +401,10 @@ export class BubbleMenu {
       this.buttonEls[i]?.classList.toggle('cwe-active', button.isActive?.(this.editor) ?? false)
     })
     this.syncPalette()
+    this.position(rect)
+  }
+
+  private position(rect: DOMRect): void {
     const width = this.dom.offsetWidth
     const height = this.dom.offsetHeight
     const { left, top } = clampToViewport(this.win, rect.left + rect.width / 2 - width / 2, rect.top - height - 8, width)

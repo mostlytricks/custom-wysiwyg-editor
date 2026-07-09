@@ -40,7 +40,7 @@ editing experience**, with a clean **agent-integration seam** so external agents
 - [x] Markdown input rules: `# `→h1…h3, `**bold**`, `*italic*`, `` `code` ``
 - [x] Placeholder text; editor event system (`change`/`update`/`focus`/`blur`)
 - [x] `@custom-wysiwyg/ui` is framework-free; React wrappers `<BubbleMenu>`/`<SlashMenu>`
-- Known polish debt: link button uses `window.prompt`; undo after autoformat doesn't restore the literal `**` syntax
+- Polish debt cleared: link now has an inline in-bubble editor; undo after autoformat restores the literal `**` syntax (see Ongoing track)
 
 ## Phase 2 — Structure (next up)
 
@@ -80,4 +80,6 @@ Rules to respect while doing it: `core/SPEC.md`.
 - [x] HTML & Markdown **import**: `parseHTML` in core (inverse of the view; powers rich paste — clipboard HTML becomes real blocks, plain text stays the fallback) + `@custom-wysiwyg/import-markdown` (`parseMarkdown`, the exported GFM subset; inline HTML degrades to plain text). `insertBlocks` command splices pastes (inline for single paragraphs, split-and-insert otherwise; cell walls hold). Round-trip tested both ways
 - [x] **Agent adapter** (`integration/PLAN.md`) — pipe proven + `@custom-wysiwyg/agent-adapter` + scripted demo session (first live LLM pass stays open there)
 - [ ] Publishing setup: npm scope, versioning (changesets), docs site
-- [ ] Undo of input rules restores literal syntax; inline link editor
+- [x] Undo of input rules restores literal syntax (autoformat commits the literal
+      text as its own undo step); inline link editor (in-bubble URL input with
+      set/edit/remove, replacing `window.prompt`)

@@ -9,37 +9,34 @@
 Last touched: 2026-07-09
 
 ## Completed
-- **v0.2.2 cut** (patch: agent adapter is a feature, no breaking). Three tags now
-  pending owner push after merge: v0.2.0 → 5bbf7dc, v0.2.1 → 555cbaf, v0.2.2 →
-  the `release: v0.2.2` commit.
-- **Agent adapter shipped — every planned arc is now done.** Pipe milestone proven
-  in Chromium (transact edit + exactly-one change event + byte-identical undo),
-  then `@custom-wysiwyg/agent-adapter` (7th pkg) designed from that usage:
-  context out (markdown/selection), `applyMarkdown` modes as single undoable
-  transactions, block-buffered `StreamWriter`; scripted 🤖 session in the demo.
-  Design finding: core `insertBlocks` needed `{ inline?: boolean }` — streamed
-  continuations must not splice into the previous block. Gate green: 180/180
-  (8 new); browser smoke 125/125 across eleven suites (15 new).
-- **v0.2.1 cut** (patch: import + Phase 4 are features, no breaking — per the
-  pre-1.0 rule). Tag pending owner push, same as v0.2.0: from a local clone,
-  `git tag v0.2.1 <release-sha> && git push origin v0.2.1`.
-- **v0.2.0 cut** (`release: v0.2.0` on the branch; tag exists locally — the git
-  proxy rejects tag pushes (403), so tag `5bbf7dc` as v0.2.0 and push from a
-  local clone after merge).
+- **Polish debt cleared (both items in the Ongoing track).** (1) *Inline link
+  editor* — `window.prompt` replaced by an in-bubble URL input with set / edit
+  (prefills the current href, `applyMark` replaces so URL edits work) / remove,
+  Enter-to-apply / Esc-to-cancel; survives the editor blur that input-focus
+  causes by freezing the bubble and restoring the captured selection on commit
+  (`packages/ui/src/bubble-menu.ts` + `styles.ts`). (2) *Autoformat undo* —
+  `insertTextWithRules` now commits the literal text as its own undo step before
+  the transform, so one Ctrl+Z restores `**bold**` before a second removes it
+  (`packages/core/src/editor.ts`). Gate green: 186/186 (6 new — 1 core
+  beforeinput-driven undo test, 5 ui link-editor tests).
+- **v0.2.2 cut** (patch). Three tags pending owner push after merge: v0.2.0 →
+  5bbf7dc, v0.2.1 → 555cbaf, v0.2.2 → the `release: v0.2.2` commit.
 
 ## Current State
 - **7-package monorepo, every planned arc shipped**: Phases 0-4 (full block set through
   tables, block chrome, Esc selection), styling marks, HTML/Markdown import + rich
-  paste, and the agent adapter — all exporting to Markdown (GFM) + HTML, 180 unit
-  tests + 125 Chromium checks across eleven smoke suites.
+  paste, and the agent adapter — all exporting to Markdown (GFM) + HTML, 186 unit tests.
 - Table v1 walls (no merges, inline-only cells, select-all stops at tables) are
   documented in `core/SPEC.md` Gotchas.
-- Known polish debt: link button uses `window.prompt`; undo after autoformat doesn't
-  restore literal `**` syntax.
+- **Known issue (pre-existing, unrelated to the debt fixes):** the parallel workspace
+  `npm run build` races — `agent-adapter`'s DTS step can start before
+  `import-markdown` emits its `.d.ts` (TS2307). JS bundles build fine; only the
+  type-declaration phase is flaky. The release gate is `typecheck && test` (both
+  green), so this never blocked a release. Fix candidate: sequence the workspace
+  builds or add `dependsOn` ordering.
 
 ## Next Step
 - **First live agent pass** (owner's call per `integration/PLAN.md`: Claude via MCP
-  or a local API script — the adapter is agent-agnostic). Otherwise: formatting
-  open slices (font family, custom colors), publishing setup (npm scope), or cut
-  the next release when evidence accumulates. Tags v0.2.0/v0.2.1 still pending
-  owner push (see git history for SHAs).
+  or a local API script — the adapter is agent-agnostic). Otherwise: fix the build
+  race above, tackle formatting open slices (font family, custom colors), or
+  publishing setup (npm scope). Tags v0.2.0/v0.2.1/v0.2.2 still pending owner push.

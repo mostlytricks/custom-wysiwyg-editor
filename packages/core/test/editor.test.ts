@@ -1,12 +1,17 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest'
-import { doc, Editor, heading, paragraph, text } from '@custom-wysiwyg/core'
+import { blockText, doc, Editor, heading, paragraph, text } from '@custom-wysiwyg/core'
 
 function mount(docNode = doc()) {
   const host = document.createElement('div')
   document.body.appendChild(host)
   const editor = new Editor(host, { doc: docNode })
   return { host, editor }
+}
+
+/** Types one character through the same beforeinput path a real keystroke takes. */
+function typeChar(editor: Editor, data: string): void {
+  editor.dom.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data, cancelable: true, bubbles: true }))
 }
 
 describe('Editor view', () => {
@@ -48,6 +53,18 @@ describe('Editor view', () => {
     expect(host.querySelector('p')?.textContent ?? '').toBe('')
     expect(editor.redo()).toBe(true)
     expect(host.querySelector('p')?.textContent).toBe('Hello')
+  })
+
+  it('undo after an autoformat restores the literal markdown syntax', () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const editor = new Editor(host, { autofocus: true })
+    for (const ch of '**b**') typeChar(editor, ch)
+    // The autoformat fired: a single bold "b".
+    expect(editor.getDoc().children[0]!.content).toEqual([{ type: 'text', text: 'b', marks: [{ type: 'bold' }] }])
+    // One undo steps back to the typed syntax rather than straight to empty.
+    expect(editor.undo()).toBe(true)
+    expect(blockText(editor.getDoc().children[0]!)).toBe('**b**')
   })
 
   it('removes its DOM on destroy', () => {

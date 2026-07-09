@@ -188,6 +188,37 @@ const CSS = `
   align-items: center;
   gap: 1px;
 }
+.cwe-link-editor {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-top: 1px solid rgba(55, 53, 47, 0.15);
+  margin-top: 4px;
+  padding: 6px 4px 3px;
+}
+.cwe-bubble input.cwe-link-input {
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid rgba(55, 53, 47, 0.2);
+  border-radius: 5px;
+  padding: 4px 7px;
+  min-width: 180px;
+  color: inherit;
+  background: #fff;
+}
+.cwe-bubble input.cwe-link-input:focus {
+  outline: none;
+  border-color: #2383e2;
+}
+.cwe-bubble button.cwe-link-apply,
+.cwe-bubble button.cwe-link-remove {
+  font-size: 12px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+.cwe-bubble button.cwe-link-remove {
+  color: #e03e3e;
+}
 .cwe-palette {
   display: grid;
   gap: 5px;
@@ -288,6 +319,10 @@ const CSS = `
   }
   .cwe-bubble button:hover, .cwe-slash-item.cwe-active {
     background: rgba(255, 255, 255, 0.08);
+  }
+  .cwe-bubble input.cwe-link-input {
+    background: #2f2f2f;
+    border-color: rgba(255, 255, 255, 0.13);
   }
   .cwe-slash-icon {
     background: #2f2f2f;
