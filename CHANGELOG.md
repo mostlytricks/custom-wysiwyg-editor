@@ -13,6 +13,16 @@ custom-wysiwyg-editor` from the workspace).
 ## [Unreleased]
 
 ### Added
+- **HTML & Markdown import.** `parseHTML(html)` in core — the inverse of the
+  view/HTML exporter (headings, lists, todos, quotes, code, dividers, callouts,
+  tables incl. column alignment, styled spans back to marks; unknown elements
+  flatten, loose inline runs become paragraphs). **Rich paste**: clipboard
+  `text/html` now becomes real blocks via the new `insertBlocks` command
+  (single paragraphs splice inline keeping marks; multi-block payloads split
+  the current block; cell walls hold — plain text stays the fallback). New
+  `@custom-wysiwyg/import-markdown` package: `parseMarkdown` for the GFM
+  subset the exporter emits (round-trip tested); inline HTML degrades to
+  plain text.
 - **Phase 4 completed**: `selectBlock` command + **Esc block selection** (Esc
   selects the caret's block subtree, repeated Esc walks up to the parent, cell
   walls respected; the gutter handle reuses it) and **table chrome** — a

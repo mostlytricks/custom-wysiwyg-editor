@@ -5,6 +5,8 @@ import * as commands from './commands'
 import { runInputRules } from './inputrules'
 import { blockAt, type BlockPath } from './model/path'
 import { blockLength, blockText } from './model/spans'
+import { parseHTML } from './parse/html'
+import type { BlockNode } from './model/types'
 import type { EditorState } from './state'
 import { createEditorState } from './state'
 import { renderBlocks } from './view/render'
@@ -171,6 +173,7 @@ export class Editor {
   readonly commands = {
     insertText: (content: string): boolean => this.apply(commands.insertText(this.state, content), 'insertText'),
     insertLines: (content: string): boolean => this.apply(commands.insertLines(this.state, content)),
+    insertBlocks: (blocks: BlockNode[]): boolean => this.apply(commands.insertBlocks(this.state, blocks)),
     deleteBackward: (): boolean => this.apply(commands.deleteBackward(this.state)),
     deleteForward: (): boolean => this.apply(commands.deleteForward(this.state)),
     splitBlock: (): boolean => this.apply(commands.splitBlock(this.state)),
@@ -382,6 +385,12 @@ export class Editor {
       case 'insertFromPaste':
       case 'insertFromDrop': {
         event.preventDefault()
+        // Prefer rich HTML when the clipboard carries it; fall back to plain text.
+        const html = event.dataTransfer?.getData('text/html')
+        if (html) {
+          const blocks = parseHTML(html, this.dom.ownerDocument)
+          if (blocks.length > 0 && this.apply(commands.insertBlocks(this.state, blocks), 'paste')) break
+        }
         const pasted = event.dataTransfer?.getData('text/plain') ?? ''
         if (pasted) this.commands.insertLines(pasted)
         break

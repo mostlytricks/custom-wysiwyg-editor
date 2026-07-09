@@ -9,6 +9,13 @@
 Last touched: 2026-07-09
 
 ## Completed
+- **HTML & Markdown import shipped** (the compatibility-gap arc). `parseHTML`
+  in core + rich paste via `insertBlocks` (inline splice vs split-and-insert,
+  cell walls hold, plain-text fallback); new `@custom-wysiwyg/import-markdown`
+  package (6th) with `parseMarkdown` for the exported GFM subset; round-trip
+  tests both ways (md→doc→md and doc→html→doc). Gate green: 172/172 (19 new);
+  browser smoke 104/104 across nine suites (10 new: synthetic clipboard
+  pastes, markdown load, undo). happy-dom lacks `:scope` — parser avoids it.
 - **Phase 4 complete.** `selectBlock` command + Esc block selection (escalating,
   cell-wall aware); `TableMenu` caret-in-table toolbar over the row/column
   commands; gutter handle-click now reuses `selectBlock`. Gate green: 153/153
@@ -16,12 +23,6 @@ Last touched: 2026-07-09
 - **v0.2.0 cut** (`release: v0.2.0` on the branch; tag exists locally — the git
   proxy rejects tag pushes (403), so tag `5bbf7dc` as v0.2.0 and push from a
   local clone after merge).
-- **Phase 4 first slice: block chrome shipped.** `BlockGutter` widget (hover
-  `+`/`⠿`), `moveBlock` command with guards, HTML5 drag-reorder with drop
-  indicator, handle-click block selection; `+` pre-opens the slash menu; slash
-  matches h1/h2/h3. Gate green: 150/150 (4 new); browser smoke 84/84 across
-  seven suites (7 new). Remaining Phase 4: full block-selection mode (Esc,
-  multi-block), table hover chrome.
 
 ## Current State
 - 5-package monorepo. **Phases 0-4 done**: full block set (through tables) + styling
@@ -33,8 +34,8 @@ Last touched: 2026-07-09
   doesn't restore literal `**` syntax; no HTML/Markdown import yet.
 
 ## Next Step
-- Pick the next arc: **HTML/Markdown import** (the biggest compatibility gap:
-  rich paste + loading saved content) or the **gravity agent adapter**
-  (`integration/PLAN.md` — round-trip smoke, then a real agent driving
-  `transact`). Formatting track also has open slices (font family, custom
-  colors). Consider cutting v0.3.0 once one of these lands.
+- **Gravity agent adapter** (`integration/PLAN.md`): round-trip smoke from
+  ai-workspace, then a real agent driving `transact` edits — importers now
+  close the loop (agent returns Markdown → `parseMarkdown` → `insertBlocks`/
+  `transact`). Or: formatting open slices (font family, custom colors), or
+  cut v0.3.0 (import + Phase 4 are ready evidence).

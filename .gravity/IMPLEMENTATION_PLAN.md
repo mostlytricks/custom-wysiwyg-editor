@@ -77,7 +77,7 @@ Rules to respect while doing it: `core/SPEC.md`.
 
 ## Ongoing / parallel track
 
-- [ ] HTML & Markdown **import** (rich paste, load saved content) — biggest compatibility gap
+- [x] HTML & Markdown **import**: `parseHTML` in core (inverse of the view; powers rich paste — clipboard HTML becomes real blocks, plain text stays the fallback) + `@custom-wysiwyg/import-markdown` (`parseMarkdown`, the exported GFM subset; inline HTML degrades to plain text). `insertBlocks` command splices pastes (inline for single paragraphs, split-and-insert otherwise; cell walls hold). Round-trip tested both ways
 - [ ] **Agent adapter** (`integration/PLAN.md`) — round-trip smoke, then a real agent driving `transact` edits
 - [ ] Publishing setup: npm scope, versioning (changesets), docs site
 - [ ] Undo of input rules restores literal syntax; inline link editor

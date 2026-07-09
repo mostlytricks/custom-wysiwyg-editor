@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @custom-wysiwyg/core -w @custom-wysiwyg/ui -w @custom-wysiwyg/export-html -w @custom-wysiwyg/export-markdown -w @custom-wysiwyg/react",
+    "build": "npm run build -w @custom-wysiwyg/core -w @custom-wysiwyg/ui -w @custom-wysiwyg/export-html -w @custom-wysiwyg/export-markdown -w @custom-wysiwyg/import-markdown -w @custom-wysiwyg/react",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run",
     "test:watch": "vitest"
