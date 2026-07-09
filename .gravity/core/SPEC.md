@@ -64,6 +64,18 @@ All asserted in `packages/core/test/commands.test.ts`:
 - given a collapsed selection with stored marks, when the next insert happens → the stored marks apply `[test:toggleMark]`
 - given a range spanning tree depths, when text is inserted or deleted → the endpoint blocks merge and surviving descendants hoist into the removed block's slot `[test:block tree]`
 - given a caret at the start of a first child block, when `deleteBackward` runs → the child's text merges into its parent (and an *empty* parent is replaced by its hoisted children) `[test:block tree]`
+- given a list item, when it indents → it becomes the last child of its previous sibling list item (with its own children); no previous list-item sibling → no-op `[test:lists]`
+- given a nested list item with following siblings, when it outdents → it becomes the next sibling of its parent and adopts the following siblings as children (document order preserved) `[test:lists]`
+- given an empty list item, when Enter runs → the item exits the list: outdent when nested, paragraph at top level; same on Backspace at item start (marker strips before any merge) `[test:lists]`
+- given consecutive ordered siblings, when serialized → they number 1..n per run; a bullet or non-list block resets the count (`[test:lists]` in export tests; view mirrors via data-ordinal)
+- given an empty todo/quote/callout, when Enter runs → the block exits to a paragraph; Backspace at the start of todo/quote/callout/codeBlock strips the chrome before any merge `[test:to-dos]` `[test:quotes and callouts]`
+- given a code block, when marks are toggled or input rules would fire → nothing happens (verbatim content); Enter inserts '\n', double-Enter on a trailing empty line exits `[test:code blocks]`
+- given a divider, when text would enter or split it → no-op; Backspace from the following block removes it `[test:dividers]`
+- given a checked todo, when it splits → the new todo starts unchecked `[test:to-dos]`
+- given endpoints in different table cells (or one inside, one outside), when a structural edit runs (insert/delete/split) → no-op; Backspace at cell start and in the block after a table never merges `[test:cell walls]`
+- given a caret in a cell, when `setAlign` runs → the **column** aligns via `table.attrs.columnAligns` (GFM model) `[test:column alignment]`
+- given a `moveBlock(from, to, side)`, when the target is the block itself, its descendant, or table structure → null; otherwise the block moves with its whole subtree `[test:moveBlock]`
+- given the caret in a cell, when block conversions run (`setHeading`, …) → table/tableRow/tableCell are skipped `[test:cell walls]`
 
 ## Gotchas
 
@@ -71,9 +83,18 @@ All asserted in `packages/core/test/commands.test.ts`:
   right after Shift+Home) — happy-dom never shows this; only the browser smoke does.
 - Cross-depth deletes hoist surviving descendants into the removed block's slot
   (document order preserved); `splitBlock` moves nested children to the *new* block.
-  These are provisional Notion-ish choices — revisit when list types land, and add
-  `[test:…]` rows to the Behavioral Contract for whichever semantics survive.
+  Lists landed on these semantics unchanged and pinned the list-specific behaviors
+  in the Behavioral Contract; the generic hoisting rows still say `[test:block tree]`.
+- List markers are pure CSS (`::before` on `data-list`/`data-ordinal`) — a marker must
+  never add DOM text nodes, or selection offset mapping breaks. Ordered ordinals are
+  computed at render time per sibling run (`renderBlocks`), not stored in the model.
 - Rendered blocks carry `data-path` ("0", "0.1"); a block's nested children render
   *outside* its data-path element (sibling `.cwe-children` wrapper), so collecting a
   block element's text nodes never leaks child-block text. Don't render child blocks
-  inside the content element — selection mapping counts on this.
+  inside the content element — selection mapping counts on this. **Exception:
+  tables** render rows/cells inline (`<table>/<tr>/<th|td>`, all with data-path) —
+  safe because table and row own no text of their own.
+- Table v1 walls: no cell merges/spans, cells hold inline text only, and select-all
+  + delete no-ops when the range would cross into a table (delete tables via
+  `deleteTable` or a range strictly containing the table). First row is always the
+  header. Enter/Tab in cells is *navigation* (editor layer), never splitting.

@@ -1,11 +1,13 @@
-import type { Alignment, DocNode, HeadingLevel, Mark, MarkType } from './model/types'
+import type { Alignment, DocNode, FontSizeToken, HeadingLevel, ListKind, Mark, MarkType } from './model/types'
 import type { Position, SelectionRange } from './model/position'
-import { selectionsEqual } from './model/position'
+import { collapsedSelection, selectionsEqual } from './model/position'
 import * as commands from './commands'
 import { runInputRules } from './inputrules'
+import { blockAt, type BlockPath } from './model/path'
+import { blockLength, blockText } from './model/spans'
 import type { EditorState } from './state'
 import { createEditorState } from './state'
-import { renderBlock } from './view/render'
+import { renderBlocks } from './view/render'
 import { applyDOMSelection, readDOMSelection } from './view/selection'
 
 export interface EditorOptions {
@@ -80,6 +82,7 @@ export class Editor {
     this.dom.addEventListener('compositionend', this.onCompositionEnd as EventListener)
     this.dom.addEventListener('focus', this.onFocus)
     this.dom.addEventListener('blur', this.onBlur)
+    this.dom.addEventListener('click', this.onClick)
     documentRef.addEventListener('selectionchange', this.onSelectionChange)
 
     this.renderView()
@@ -176,8 +179,47 @@ export class Editor {
     toggleItalic: (): boolean => this.apply(commands.toggleMark(this.state, { type: 'italic' })),
     toggleCode: (): boolean => this.apply(commands.toggleMark(this.state, { type: 'code' })),
     setLink: (href: string): boolean => this.apply(commands.toggleMark(this.state, { type: 'link', attrs: { href } })),
+    applyMark: (mark: Mark): boolean => this.apply(commands.applyMark(this.state, mark)),
+    removeMark: (type: MarkType): boolean => this.apply(commands.removeMark(this.state, type)),
+    setColor: (value: string | null): boolean =>
+      this.apply(
+        value === null
+          ? commands.removeMark(this.state, 'color')
+          : commands.applyMark(this.state, { type: 'color', attrs: { value } }),
+      ),
+    setHighlight: (value: string | null): boolean =>
+      this.apply(
+        value === null
+          ? commands.removeMark(this.state, 'highlight')
+          : commands.applyMark(this.state, { type: 'highlight', attrs: { value } }),
+      ),
+    setFontSize: (value: FontSizeToken | null): boolean =>
+      this.apply(
+        value === null
+          ? commands.removeMark(this.state, 'fontSize')
+          : commands.applyMark(this.state, { type: 'fontSize', attrs: { value } }),
+      ),
     setHeading: (level: HeadingLevel): boolean => this.apply(commands.setHeading(this.state, level)),
     setParagraph: (): boolean => this.apply(commands.setParagraph(this.state)),
+    setList: (kind: ListKind): boolean => this.apply(commands.setList(this.state, kind)),
+    toggleList: (kind: ListKind): boolean => this.apply(commands.toggleList(this.state, kind)),
+    indentListItem: (): boolean => this.apply(commands.indentListItem(this.state)),
+    outdentListItem: (): boolean => this.apply(commands.outdentListItem(this.state)),
+    setTodo: (): boolean => this.apply(commands.setTodo(this.state)),
+    toggleTodo: (path?: BlockPath): boolean => this.apply(commands.toggleTodo(this.state, path)),
+    setQuote: (): boolean => this.apply(commands.setQuote(this.state)),
+    setCallout: (emoji?: string): boolean => this.apply(commands.setCallout(this.state, emoji)),
+    setCodeBlock: (language?: string): boolean => this.apply(commands.setCodeBlock(this.state, language)),
+    insertDivider: (): boolean => this.apply(commands.insertDivider(this.state)),
+    insertTable: (rows?: number, cols?: number): boolean => this.apply(commands.insertTable(this.state, rows, cols)),
+    moveBlock: (from: BlockPath, to: BlockPath, side: 'before' | 'after'): boolean =>
+      this.apply(commands.moveBlock(this.state, from, to, side)),
+    insertParagraphAfter: (): boolean => this.apply(commands.insertParagraphAfter(this.state)),
+    addTableRow: (): boolean => this.apply(commands.addTableRow(this.state)),
+    addTableColumn: (): boolean => this.apply(commands.addTableColumn(this.state)),
+    deleteTableRow: (): boolean => this.apply(commands.deleteTableRow(this.state)),
+    deleteTableColumn: (): boolean => this.apply(commands.deleteTableColumn(this.state)),
+    deleteTable: (): boolean => this.apply(commands.deleteTable(this.state)),
     setAlign: (align: Alignment): boolean => this.apply(commands.setAlign(this.state, align)),
     selectAll: (): boolean => this.apply(commands.selectAll(this.state)),
     setSelection: (selection: SelectionRange): boolean => this.apply(commands.setSelection(this.state, selection)),
@@ -234,7 +276,7 @@ export class Editor {
 
   private renderView(): void {
     const documentRef = this.dom.ownerDocument
-    this.dom.replaceChildren(...this.state.doc.children.map((block, i) => renderBlock(documentRef, block, [i])))
+    this.dom.replaceChildren(...renderBlocks(documentRef, this.state.doc.children, []))
     const first = this.state.doc.children[0]
     const isEmpty =
       this.state.doc.children.length === 1 &&
@@ -293,10 +335,37 @@ export class Editor {
         break
       }
       case 'insertParagraph':
-      case 'insertLineBreak':
+      case 'insertLineBreak': {
         event.preventDefault()
+        const cellCtx = commands.cellContext(this.state.doc, this.state.selection.head.path)
+        if (cellCtx && event.inputType === 'insertParagraph') {
+          // Enter in a cell moves to the cell below, growing the table at the edge.
+          this.moveRow(cellCtx)
+          break
+        }
+        const block = blockAt(this.state.doc, this.state.selection.head.path)
+        if (block?.type === 'codeBlock' && event.inputType === 'insertParagraph') {
+          // Enter inside a code block inserts a newline; Enter on an empty
+          // trailing line exits into a fresh paragraph.
+          const head = this.state.selection.head
+          const text = blockText(block)
+          if (text.endsWith('\n') && head.offset === blockLength(block)) {
+            this.transact((state) => {
+              const trimmed = commands.deleteRange(
+                state,
+                { path: head.path, offset: head.offset - 1 },
+                { path: head.path, offset: head.offset },
+              )
+              return commands.insertParagraphAfter(trimmed)
+            }, 'exitCode')
+          } else {
+            this.commands.insertText('\n')
+          }
+          break
+        }
         this.commands.splitBlock()
         break
+      }
       case 'deleteContentBackward':
       case 'deleteWordBackward':
       case 'deleteSoftLineBackward':
@@ -339,8 +408,27 @@ export class Editor {
   }
 
   private onKeyDown = (event: KeyboardEvent): void => {
+    if (this.composing) return
+    if (event.key === 'Tab' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      this.syncSelectionFromDOM()
+      const ctx = commands.cellContext(this.state.doc, this.state.selection.head.path)
+      if (ctx) {
+        event.preventDefault()
+        this.moveCell(ctx, event.shiftKey ? -1 : 1)
+        return
+      }
+      const block = blockAt(this.state.doc, this.state.selection.head.path)
+      if (block?.type === 'listItem') {
+        // Swallow Tab inside lists even when the indent doesn't apply —
+        // moving focus out of the editor mid-list would be worse.
+        event.preventDefault()
+        if (event.shiftKey) this.commands.outdentListItem()
+        else this.commands.indentListItem()
+      }
+      return
+    }
     const mod = event.metaKey || event.ctrlKey
-    if (!mod || this.composing) return
+    if (!mod) return
     this.syncSelectionFromDOM()
     const key = event.key.toLowerCase()
     if (key === 'b') {
@@ -366,6 +454,61 @@ export class Editor {
    * selection captured at composition start, and the view is re-rendered from
    * the model — which also discards whatever the browser left in the DOM.
    */
+  /** Tab navigation between cells, row-major; Tab past the last cell grows the table. */
+  private moveCell(ctx: commands.CellContext, direction: 1 | -1): void {
+    const tableBlock = blockAt(this.state.doc, ctx.tablePath)
+    if (!tableBlock) return
+    const rows = tableBlock.children ?? []
+    const cols = rows[ctx.rowIndex]?.children?.length ?? 1
+    let row = ctx.rowIndex
+    let col = ctx.colIndex + direction
+    if (col >= cols) {
+      row += 1
+      col = 0
+    } else if (col < 0) {
+      row -= 1
+      col = (rows[row]?.children?.length ?? 1) - 1
+    }
+    if (row < 0) return
+    if (row >= rows.length) {
+      // Tab past the last cell: grow the table and land on the new row's first cell.
+      if (this.commands.addTableRow()) this.placeCaretInCell([...ctx.tablePath, row, 0])
+      return
+    }
+    this.placeCaretInCell([...ctx.tablePath, row, col])
+  }
+
+  /** Enter navigation: the cell below, adding a row at the bottom edge. */
+  private moveRow(ctx: commands.CellContext): void {
+    const tableBlock = blockAt(this.state.doc, ctx.tablePath)
+    if (!tableBlock) return
+    const rows = tableBlock.children ?? []
+    if (ctx.rowIndex + 1 >= rows.length) {
+      this.commands.addTableRow()
+      return
+    }
+    this.placeCaretInCell([...ctx.tablePath, ctx.rowIndex + 1, ctx.colIndex])
+  }
+
+  private placeCaretInCell(cellPath: BlockPath): void {
+    const cell = blockAt(this.state.doc, cellPath)
+    if (!cell) return
+    const offset = blockLength(cell)
+    this.apply(commands.setSelection(this.state, collapsedSelection({ path: cellPath, offset })))
+  }
+
+  /** Checkbox clicks toggle the to-do in the model; the render syncs the input. */
+  private onClick = (event: MouseEvent): void => {
+    const target = event.target
+    if (!(target instanceof HTMLElement) || !target.classList.contains('cwe-todo-box')) return
+    event.preventDefault()
+    const blockEl = target.closest('[data-path]')
+    const attr = blockEl?.getAttribute('data-path')
+    if (!attr) return
+    const path = attr.split('.').map(Number)
+    this.commands.toggleTodo(path)
+  }
+
   private onFocus = (): void => {
     this.emit('focus')
   }

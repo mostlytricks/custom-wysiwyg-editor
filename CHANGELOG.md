@@ -12,6 +12,62 @@ custom-wysiwyg-editor` from the workspace).
 
 ## [Unreleased]
 
+### Added
+- **Block chrome** (Phase 4). Hover gutter on every top-level block: `+` inserts
+  a paragraph below with the slash menu pre-opened; `⠿` drags to reorder (HTML5
+  DnD with a drop indicator; drops before/after by pointer midpoint) and clicks
+  to select the whole block subtree. New `moveBlock(from, to, side)` command
+  moves a block with its subtree, rejecting no-op, into-own-subtree, and
+  table-structure moves. New `BlockGutter` widget in `@custom-wysiwyg/ui` +
+  `<BlockGutter>` React wrapper. Slash menu now matches `h1`/`h2`/`h3` queries.
+
+
+## [0.2.0] - 2026-07-09
+
+### Added
+- **Tables** (Phase 3). `table` → `tableRow` → `tableCell` as ordinary tree
+  nodes, so paths, selection mapping, and marks work unchanged. First row is the
+  header. Cell walls: structural edits never cross a cell boundary (cross-cell
+  ranges no-op; Backspace at cell start and after a table never merges); block
+  conversions skip table structure. Tab/Shift+Tab navigate row-major and Enter
+  moves down — both grow the table at the edge. Commands: `insertTable`,
+  `addTableRow`/`addTableColumn`, `deleteTableRow`/`deleteTableColumn`,
+  `deleteTable`; `setAlign` in a cell sets the **column** alignment
+  (`table.attrs.columnAligns`). Slash item "Table". Export: GFM tables with pipe
+  escaping and `:-:`/`--:` markers; HTML `thead/th` + `tbody/td` with per-column
+  `text-align`.
+- **To-dos, blockquotes, code blocks, dividers, callouts** (Phase 2 complete).
+  Five new block types: `todo` (checkbox rendered as a real `<input>` — adds no
+  text nodes; click toggles via the model; splits start unchecked; GFM `- [ ]`
+  export), `quote` (`>` export incl. children), `codeBlock` (verbatim: marks and
+  input rules are inert inside, Enter inserts `\n`, double-Enter on a trailing
+  empty line exits; fenced Markdown with language, fence grows past inner
+  backticks), `divider` (void block: text can't enter it, Backspace removes it;
+  `---`/`<hr>`), and `callout` (emoji attr, `<aside>` in HTML, emoji-quote in
+  Markdown). Input rules `[] `, `[x] `, `> `, ``` ``` ``` + space, `--- `; slash
+  items for all five; empty todo/quote/callout exit to paragraph on Enter, and
+  Backspace at block start strips chrome before merging.
+- **Text color, highlight, and font size** (formatting domain). Three new valued
+  marks — `color { value }`, `highlight { value }`, `fontSize { value: 'small' |
+  'large' | 'huge' }` (token-based; `FONT_SIZES` owns the mapping). New command
+  semantics for valued marks: `applyMark` **replaces** a same-type mark (never
+  toggles off), `removeMark(type)` removes explicitly; editor commands
+  `setColor`/`setHighlight`/`setFontSize` take `value | null`. Bubble menu gains a
+  palette (text colors, highlights, sizes, resets). HTML export composes one
+  `<span style>` per styled run (values escaped); Markdown falls back to inline
+  spans, or drops styling with `{ styledText: 'plain' }`. New
+  `.gravity/formatting/` domain owns the styling contract.
+- **Bulleted & numbered lists** (Phase 2). New `listItem` block type
+  (`attrs.kind: 'bullet' | 'ordered'`, Notion-style: no wrapper list node — a list is a
+  run of same-kind siblings; nesting is the block tree). Commands
+  `setList`/`toggleList`/`indentListItem`/`outdentListItem` (+ on `editor.commands`);
+  Tab/Shift+Tab indent/outdent; input rules `- `, `* `, `1. `; Enter on an empty item
+  and Backspace at item start exit the list (outdent when nested, else paragraph);
+  slash-menu items "Bulleted list"/"Numbered list". Rendering: `data-list` +
+  render-time `data-ordinal` with CSS-only markers. Exporters: HTML groups runs into
+  `<ul>/<ol>` with nested lists inside `<li>`; Markdown emits tight lists with
+  CommonMark content-column indentation and per-run `1..n` numbering.
+
 ### Changed
 - **BREAKING — recursive block tree (Phase 2 groundwork).** The document model is now a
   tree: a block's inline spans moved from `children` to **`content`**, and `children`

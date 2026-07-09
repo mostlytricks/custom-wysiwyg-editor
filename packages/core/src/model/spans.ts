@@ -3,6 +3,9 @@ import type { BlockNode, Mark, MarkType, TextSpan } from './types'
 export function marksEqual(a: Mark, b: Mark): boolean {
   if (a.type !== b.type) return false
   if (a.type === 'link' && b.type === 'link') return a.attrs.href === b.attrs.href
+  if ((a.type === 'color' || a.type === 'highlight' || a.type === 'fontSize') && a.type === b.type) {
+    return a.attrs.value === b.attrs.value
+  }
   return true
 }
 

@@ -9,27 +9,33 @@
 Last touched: 2026-07-09
 
 ## Completed
-- **`v0.1.0` published** — pushed `main` + tag to `github.com/mostlytricks/custom-wysiwyg-editor`.
-- **Phase 2 groundwork: recursive block tree shipped** (first two Phase 2 checkboxes).
-  Model: inline spans → `content`, nested blocks → optional `children`; positions →
-  `{ path: number[], offset }`; new `model/path.ts` helpers. Rewrote commands (cross-depth
-  delete hoists survivors; split moves children to the new block), view (`data-path`,
-  children render outside the content element), input rules, ui widgets, both exporters
-  (tree semantics provisional until lists). Gate green (typecheck + 70/70, incl. 10 new
-  tree tests); real-browser smoke 13/13 (typing, input rules, Shift+Home+Ctrl+B, undo/redo,
-  merge, slash menu, live exports). `core/SPEC.md` updated same-slice; changelog has the
-  BREAKING entry.
+- **v0.2.0 cut** (`release: v0.2.0` on the branch; tag exists locally — the git
+  proxy rejects tag pushes (403), so tag `5bbf7dc` as v0.2.0 and push from a
+  local clone after merge).
+- **Phase 4 first slice: block chrome shipped.** `BlockGutter` widget (hover
+  `+`/`⠿`), `moveBlock` command with guards, HTML5 drag-reorder with drop
+  indicator, handle-click block selection; `+` pre-opens the slash menu; slash
+  matches h1/h2/h3. Gate green: 150/150 (4 new); browser smoke 84/84 across
+  seven suites (7 new). Remaining Phase 4: full block-selection mode (Esc,
+  multi-block), table hover chrome.
+- **Phase 3 complete: tables shipped** (planned in `core/PLAN.tables.md`, outcome
+  recorded there). Tables are ordinary tree nodes (table→row→cell) with cell-wall
+  guards, Tab/Enter navigation that grows at the edge, row/column commands,
+  column alignment on table attrs, GFM + thead/th export. Gate green: 146/146
+  (14 new); browser smoke 77/77 across six suites (11 new). SPEC +3 contract
+  rows + table gotchas; core spine stays ✓ (Phases 2–3 done).
 
 ## Current State
-- 5-package monorepo; Phases 0–1 done, Phase 2 checkboxes 1–2 done (tree + paths), rest of
-  Phase 2 (lists, todos, quotes, code blocks, dividers, callouts) not started.
-- No UI produces nesting yet — tree semantics (hoisting, split-children, exporter nesting)
-  are provisional Notion-ish defaults to revisit when list types land (noted in SPEC Gotchas).
+- 5-package monorepo. Phases 0-3 done: full block set (paragraphs, headings, lists,
+  todos, quotes, code blocks, dividers, callouts, tables) + styling marks
+  (color/highlight/fontSize) + slash/bubble UI, all exporting to Markdown (GFM) + HTML.
+- Table v1 walls (no merges, inline-only cells, select-all stops at tables) are
+  documented in `core/SPEC.md` Gotchas; table hover chrome deferred to Phase 4.
 - Known polish debt unchanged: link button uses `window.prompt`; undo after autoformat
-  doesn't restore literal `**` syntax.
+  doesn't restore literal `**` syntax; no HTML/Markdown import yet.
 
 ## Next Step
-- **Phase 2, checkbox 3: bulleted/numbered lists** — new block types on the tree
-  (Tab/Shift+Tab indent via child nesting, input rules `- ` / `1. `), then extend
-  slash menu + exporters (real list indent semantics replace the provisional flattening).
-  Read `.gravity/core/SPEC.md` first.
+- **Finish Phase 4**: full block-selection mode (Esc enters it, arrow/multi-block
+  selection, Backspace deletes whole blocks) + table hover chrome (add/remove
+  row/column buttons on hover). Alternatives: HTML/Markdown import, or the
+  gravity agent adapter (`integration/PLAN.md`).

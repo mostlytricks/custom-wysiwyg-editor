@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { doc, heading, paragraph, text } from '@custom-wysiwyg/core'
+import { callout, codeBlock, divider, doc, heading, listItem, paragraph, quote, table, tableCell, tableRow, text, todo } from '@custom-wysiwyg/core'
 import { serializeHTML } from '@custom-wysiwyg/export-html'
 
 describe('serializeHTML', () => {
@@ -32,5 +32,94 @@ describe('serializeHTML', () => {
 
   it('renders an empty paragraph as an empty tag', () => {
     expect(serializeHTML(doc(paragraph()))).toBe('<p></p>')
+  })
+})
+
+describe('lists', () => {
+  it('groups consecutive items of one kind into a single list', () => {
+    const out = serializeHTML(doc(listItem('bullet', [text('one')]), listItem('bullet', [text('two')])))
+    expect(out).toBe('<ul>\n<li>one</li>\n<li>two</li>\n</ul>')
+  })
+
+  it('splits lists when the kind changes', () => {
+    const out = serializeHTML(doc(listItem('bullet', [text('b')]), listItem('ordered', [text('o')])))
+    expect(out).toBe('<ul>\n<li>b</li>\n</ul>\n<ol>\n<li>o</li>\n</ol>')
+  })
+
+  it('nests child lists inside the li', () => {
+    const out = serializeHTML(doc(listItem('bullet', [text('parent')], undefined, [listItem('bullet', [text('kid')])])))
+    expect(out).toBe('<ul>\n<li>parent\n<ul>\n<li>kid</li>\n</ul>\n</li>\n</ul>')
+  })
+
+  it('keeps alignment styles on list items', () => {
+    const out = serializeHTML(doc(listItem('bullet', [text('c')], { align: 'center' })))
+    expect(out).toBe('<ul>\n<li style="text-align: center">c</li>\n</ul>')
+  })
+})
+
+describe('styled text', () => {
+  const red = { type: 'color', attrs: { value: '#e03e3e' } } as const
+  const mark = { type: 'highlight', attrs: { value: '#fbf3db' } } as const
+  const huge = { type: 'fontSize', attrs: { value: 'huge' } } as const
+
+  it('composes color, highlight, and size into one span style', () => {
+    const out = serializeHTML(doc(paragraph([text('wow', [red, mark, huge])])))
+    expect(out).toBe(
+      '<p><span style="color: #e03e3e; background-color: #fbf3db; font-size: 1.5em">wow</span></p>',
+    )
+  })
+
+  it('keeps emphasis inside the styled span', () => {
+    const out = serializeHTML(doc(paragraph([text('b', [{ type: 'bold' }, red])])))
+    expect(out).toBe('<p><span style="color: #e03e3e"><strong>b</strong></span></p>')
+  })
+
+  it('escapes hostile style values', () => {
+    const evil = { type: 'color', attrs: { value: 'red" onmouseover="x' } } as const
+    const out = serializeHTML(doc(paragraph([text('t', [evil])])))
+    expect(out).not.toContain('onmouseover="x')
+    expect(out).toContain('&quot;')
+  })
+})
+
+describe('phase 2 blocks', () => {
+  it('groups todos into a task ul with checkbox inputs', () => {
+    const out = serializeHTML(doc(todo(true, [text('done')]), todo(false, [text('open')])))
+    expect(out).toBe(
+      '<ul class="cwe-todos">\n<li><input type="checkbox" disabled checked> done</li>\n<li><input type="checkbox" disabled> open</li>\n</ul>',
+    )
+  })
+
+  it('serializes quotes and callouts', () => {
+    expect(serializeHTML(doc(quote([text('q')])))).toBe('<blockquote>q</blockquote>')
+    expect(serializeHTML(doc(callout([text('c')])))).toBe('<aside class="cwe-callout">💡 c</aside>')
+  })
+
+  it('serializes code blocks with escaped content and language class', () => {
+    const out = serializeHTML(doc(codeBlock('if (a < b) {}', 'ts')))
+    expect(out).toBe('<pre><code class="language-ts">if (a &lt; b) {}</code></pre>')
+  })
+
+  it('serializes dividers', () => {
+    expect(serializeHTML(doc(divider()))).toBe('<hr>')
+  })
+})
+
+describe('tables', () => {
+  it('serializes thead/th header and tbody with column alignment', () => {
+    const out = serializeHTML(
+      doc(
+        table(
+          [
+            tableRow([tableCell([text('H')]), tableCell([text('N')])]),
+            tableRow([tableCell([text('a')]), tableCell([text('1')])]),
+          ],
+          { columnAligns: ['left', 'right'] },
+        ),
+      ),
+    )
+    expect(out).toBe(
+      '<table>\n<thead>\n<tr><th>H</th><th style="text-align: right">N</th></tr>\n</thead>\n<tbody>\n<tr><td>a</td><td style="text-align: right">1</td></tr>\n</tbody>\n</table>',
+    )
   })
 })

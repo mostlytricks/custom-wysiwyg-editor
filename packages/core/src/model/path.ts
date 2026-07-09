@@ -156,6 +156,23 @@ export function spliceBlocksAt(docNode: DocNode, path: BlockPath, replacement: B
   return { ...docNode, children: spliceIn(docNode.children, 0) }
 }
 
+/** Inserts a block at `index` within the children array addressed by `parentPath` ([] = top level). */
+export function insertBlockAt(docNode: DocNode, parentPath: BlockPath, index: number, block: BlockNode): DocNode {
+  function insertIn(blocks: BlockNode[], depth: number): BlockNode[] {
+    if (depth === parentPath.length) {
+      const at = Math.max(0, Math.min(index, blocks.length))
+      return [...blocks.slice(0, at), block, ...blocks.slice(at)]
+    }
+    const childIndex = parentPath[depth]
+    const target = childIndex != null ? blocks[childIndex] : undefined
+    if (childIndex == null || !target) return blocks
+    const next = blocks.slice()
+    next[childIndex] = { ...target, children: insertIn(target.children ?? [], depth + 1) }
+    return next
+  }
+  return { ...docNode, children: insertIn(docNode.children, 0) }
+}
+
 /** Inserts a block as the next sibling of the block at `path`. */
 export function insertBlockAfter(docNode: DocNode, path: BlockPath, block: BlockNode): DocNode {
   function insertIn(blocks: BlockNode[], depth: number): BlockNode[] {

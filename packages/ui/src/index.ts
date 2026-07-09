@@ -1,4 +1,5 @@
 export { injectStyles } from './styles'
+export { BlockGutter } from './block-gutter'
 export { clampToViewport, selectionRect } from './position'
 export type { BubbleMenuOptions } from './bubble-menu'
 export { BubbleMenu } from './bubble-menu'

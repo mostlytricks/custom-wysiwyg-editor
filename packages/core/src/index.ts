@@ -3,20 +3,61 @@ export type {
   BlockNode,
   BlockType,
   BoldMark,
+  CalloutAttrs,
+  CalloutNode,
+  CodeBlockAttrs,
+  CodeBlockNode,
   CodeMark,
+  ColorMark,
+  DividerAttrs,
+  DividerNode,
   DocNode,
+  FontSizeMark,
+  FontSizeToken,
+  HighlightMark,
   HeadingAttrs,
   HeadingLevel,
   HeadingNode,
   ItalicMark,
   LinkMark,
+  ListItemAttrs,
+  ListItemNode,
+  ListKind,
   Mark,
   MarkType,
   ParagraphAttrs,
   ParagraphNode,
+  QuoteAttrs,
+  QuoteNode,
+  TableAttrs,
+  TableCellAttrs,
+  TableCellNode,
+  TableNode,
+  TableRowAttrs,
+  TableRowNode,
   TextSpan,
+  TodoAttrs,
+  TodoNode,
 } from './model/types'
-export { doc, emptyDoc, heading, paragraph, text } from './model/types'
+export {
+  callout,
+  codeBlock,
+  DEFAULT_CALLOUT_EMOJI,
+  divider,
+  doc,
+  emptyDoc,
+  emptyTable,
+  FONT_SIZES,
+  heading,
+  listItem,
+  paragraph,
+  quote,
+  table,
+  tableCell,
+  tableRow,
+  text,
+  todo,
+} from './model/types'
 
 export type { Position, SelectionRange } from './model/position'
 export {
@@ -38,6 +79,7 @@ export {
   comparePaths,
   firstPath,
   insertBlockAfter,
+  insertBlockAt,
   isAncestorOrSelf,
   lastPath,
   nextPath,
@@ -66,27 +108,49 @@ export {
 export type { EditorState } from './state'
 export { createEditorState } from './state'
 
+export type { CellContext } from './commands'
 export {
+  addTableColumn,
+  addTableRow,
+  applyMark,
+  cellContext,
   deleteBackward,
   deleteForward,
   deleteRange,
   deleteRangeInDoc,
+  deleteTable,
+  deleteTableColumn,
+  deleteTableRow,
+  indentListItem,
+  insertDivider,
+  insertTable,
   insertLines,
+  insertParagraphAfter,
   insertText,
   insertTextInDoc,
   isMarkActive,
+  moveBlock,
+  outdentListItem,
+  removeMark,
   selectAll,
   setAlign,
+  setCallout,
+  setCodeBlock,
   setHeading,
+  setList,
   setParagraph,
+  setQuote,
   setSelection,
+  setTodo,
   splitBlock,
+  toggleList,
   toggleMark,
+  toggleTodo,
 } from './commands'
 
 export { runInputRules } from './inputrules'
 
-export { attrToPath, pathToAttr, renderBlock, renderSpan } from './view/render'
+export { attrToPath, pathToAttr, renderBlock, renderBlocks, renderSpan } from './view/render'
 export { applyDOMSelection, domPointToPosition, positionToDOMPoint, readDOMSelection } from './view/selection'
 
 export type { EditorEventType, EditorOptions } from './editor'

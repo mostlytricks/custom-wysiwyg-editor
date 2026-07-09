@@ -17,7 +17,8 @@ editing experience**, with a clean **agent-integration seam** so external agents
 
 | Domain | Status | One line |
 |---|---|---|
-| `core` | ◑ | engine (model/commands/view/input rules) — **recursive block tree + path positions shipped**; next: lists + new block types on top of it. `core/SPEC.md` |
+| `core` | ✓ | engine (model/commands/view/input rules) — **Phases 2–3 complete** (tree, paths, full block set incl. tables with GFM export); next structural work is Phase 4 block chrome. `core/SPEC.md` |
+| `formatting` | ◑ | text styling & alignment — bold/italic/code/link/align shipped; **color/highlight/fontSize marks + bubble palette shipped**; open: font family, block indent. `formatting/SPEC.md` |
 | `integration` | ○ | the agent-adapter seam — editor-side contract shipped; adapter + round-trip smoke not started. `integration/PLAN.md` |
 | ui | ✓ | framework-free widgets (BubbleMenu, SlashMenu) — no folder yet; mint when it grows rules |
 | react | ✓ | bindings (`useEditor`/`<Editor>`, SSR-safe) — no folder yet |
@@ -48,21 +49,31 @@ Rules to respect while doing it: `core/SPEC.md`.
 
 - [x] Migrate model from flat block list to a **recursive block tree**; positions become paths (`{ path: number[], offset }`) — inline spans now `content`, nested blocks `children`
 - [x] Update all commands + selection mapping (`data-path`) + both exporters for the tree (exporter nesting semantics provisional until list types define them)
-- [ ] Bulleted / numbered lists (Tab/Shift+Tab indent, input rules `- `, `1. `)
-- [ ] To-do blocks (checkbox), blockquotes, code blocks, dividers, callouts
-- [ ] Extend slash-menu items + exporters for each new type
+- [x] Bulleted / numbered lists (`listItem` blocks with `kind`, Tab/Shift+Tab indent via tree nesting, input rules `- `/`* `/`1. `, Enter/Backspace exit-and-outdent, slash items, `<ul>/<ol>` grouping in HTML, tight indented Markdown lists)
+- [x] To-do blocks (checkbox, click-to-toggle), blockquotes, code blocks (verbatim: no marks/rules, Enter = newline, double-Enter exits), dividers (void block), callouts (emoji attr)
+- [x] Extend slash-menu items + exporters for each new type (GFM tasks, `>` quotes, fences, `---`, emoji-quote callouts; HTML: task `<ul>`, `<blockquote>`, `<pre><code>`, `<hr>`, `<aside>`)
 
 ## Phase 3 — Tables
 
-- [ ] Table node (rows → cells → inline content)
-- [ ] Cell-aware selection; Tab/arrow navigation; add/remove row & column UI
-- [ ] Markdown export as GFM tables (column alignment via `:---:` — no HTML fallback needed)
+- [x] Table node (rows → cells → inline content) — ordinary tree nodes, so paths/marks/selection work unchanged; cell walls guard structural edits
+- [x] Cell-aware selection; Tab/Shift+Tab + Enter navigation (grow at the edge); add/remove row/column/table via commands (hover chrome deferred to Phase 4)
+- [x] Markdown export as GFM tables (first row = header, pipe escaping, `:-:`/`--:` column alignment via `setAlign` in a cell); HTML `thead/th` + `tbody/td`
 
 ## Phase 4 — Blocks as objects
 
-- [ ] Hover gutter: `⠿` drag handle + `+` insert button
-- [ ] Drag-and-drop block reordering (`moveBlock` command)
-- [ ] Block-level selection mode (click handle / Esc)
+- [x] Hover gutter: `⠿` drag handle + `+` insert button (inserts a paragraph below with the slash menu pre-opened)
+- [x] Drag-and-drop block reordering (`moveBlock` command with subtree, guards vs no-op/descendant/table structure; HTML5 DnD + drop indicator)
+- [x] Click the handle to select the whole block (subtree text selection)
+- [ ] Full block-selection mode (Esc to enter, multi-block, keyboard) — open
+- [ ] Table hover chrome (add/remove row/column buttons) — open
+
+## Formatting track (`formatting/SPEC.md`)
+
+- [x] Boolean marks (bold/italic/code) + link; block alignment incl. justify (Phases 0–1)
+- [x] Valued style marks: **text color, highlight, font size** (token-based) — replace-not-toggle semantics, HTML `<span style>` export, Markdown inline-HTML fallback (`styledText: 'plain'` to drop), bubble-menu palette
+- [ ] Font family (token set: default / serif / mono)
+- [ ] Generic block indent for non-list blocks (decide vs. nesting before Phase 4)
+- [ ] Custom color input in the palette
 
 ## Ongoing / parallel track
 
