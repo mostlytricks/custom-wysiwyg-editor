@@ -24,11 +24,11 @@ Last touched: 2026-07-09
   multi-block), table hover chrome.
 
 ## Current State
-- 5-package monorepo. Phases 0-3 done: full block set (paragraphs, headings, lists,
-  todos, quotes, code blocks, dividers, callouts, tables) + styling marks
-  (color/highlight/fontSize) + slash/bubble UI, all exporting to Markdown (GFM) + HTML.
+- 5-package monorepo. **Phases 0-4 done**: full block set (through tables) + styling
+  marks + slash/bubble/gutter/table-menu UI + Esc block selection, all exporting to
+  Markdown (GFM) + HTML.
 - Table v1 walls (no merges, inline-only cells, select-all stops at tables) are
-  documented in `core/SPEC.md` Gotchas; table hover chrome deferred to Phase 4.
+  documented in `core/SPEC.md` Gotchas.
 - Known polish debt unchanged: link button uses `window.prompt`; undo after autoformat
   doesn't restore literal `**` syntax; no HTML/Markdown import yet.
 
