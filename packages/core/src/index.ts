@@ -122,6 +122,7 @@ export {
   deleteTableColumn,
   deleteTableRow,
   indentListItem,
+  insertBlocks,
   insertDivider,
   insertTable,
   insertLines,
@@ -133,6 +134,7 @@ export {
   outdentListItem,
   removeMark,
   selectAll,
+  selectBlock,
   setAlign,
   setCallout,
   setCodeBlock,
@@ -149,6 +151,8 @@ export {
 } from './commands'
 
 export { runInputRules } from './inputrules'
+
+export { parseBlocks, parseHTML } from './parse/html'
 
 export { attrToPath, pathToAttr, renderBlock, renderBlocks, renderSpan } from './view/render'
 export { applyDOMSelection, domPointToPosition, positionToDOMPoint, readDOMSelection } from './view/selection'

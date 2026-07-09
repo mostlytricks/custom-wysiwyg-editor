@@ -9,11 +9,14 @@ import {
   divider,
   doc,
   emptyTable,
+  heading,
+  insertBlocks,
   insertDivider,
   insertText,
   moveBlock,
   paragraph,
   quote,
+  selectBlock,
   setCodeBlock,
   setQuote,
   setTodo,
@@ -162,5 +165,71 @@ describe('moveBlock', () => {
     const withTable = state(doc(paragraph([text('p')]), emptyTable(2, 2)))
     expect(moveBlock(withTable, [0], [1, 0, 0], 'after')).toBeNull()
     expect(moveBlock(withTable, [1], [0], 'before')).not.toBeNull() // whole table CAN move
+  })
+})
+
+describe('selectBlock', () => {
+  it('selects the block subtree at the caret', () => {
+    const d = doc(quote([text('top')], undefined, [paragraph([text('kid')])]), paragraph([text('after')]))
+    const next = selectBlock(state(d, caret([0], 1)))!
+    expect(next.selection.anchor).toEqual({ path: [0], offset: 0 })
+    expect(next.selection.head).toEqual({ path: [0, 0], offset: 3 })
+  })
+
+  it('escalates to the parent when the block is already selected', () => {
+    const d = doc(quote([text('top')], undefined, [paragraph([text('kid')])]))
+    const first = selectBlock(state(d, caret([0, 0], 1)))!
+    expect(first.selection.anchor.path).toEqual([0, 0])
+    const second = selectBlock(first)!
+    expect(second.selection.anchor.path).toEqual([0])
+    expect(second.selection.head).toEqual({ path: [0, 0], offset: 3 })
+  })
+
+  it('stops at the cell wall inside tables', () => {
+    const d = doc(emptyTable(2, 2))
+    const withText = insertText(state(d, caret([0, 0, 0], 0)), 'hi')
+    const next = selectBlock(withText)!
+    expect(next.selection.anchor).toEqual({ path: [0, 0, 0], offset: 0 })
+    expect(next.selection.head).toEqual({ path: [0, 0, 0], offset: 2 })
+    // Escalation never leaves the cell.
+    const again = selectBlock(next)!
+    expect(again.selection.anchor.path).toEqual([0, 0, 0])
+  })
+})
+
+describe('insertBlocks', () => {
+  it('splices a single paragraph inline at the caret', () => {
+    const s = state(doc(paragraph([text('hello world')])), caret([0], 5))
+    const next = insertBlocks(s, [paragraph([text(' pasted', [{ type: 'bold' }])])])
+    expect(next.doc.children).toHaveLength(1)
+    expect(next.doc.children[0]!.content).toEqual([
+      { type: 'text', text: 'hello', marks: [] },
+      { type: 'text', text: ' pasted', marks: [{ type: 'bold' }] },
+      { type: 'text', text: ' world', marks: [] },
+    ])
+    expect(next.selection.head).toEqual({ path: [0], offset: 12 })
+  })
+
+  it('replaces an empty paragraph with the pasted blocks', () => {
+    const s = state(doc(paragraph([text('before')]), paragraph()), caret([1], 0))
+    const next = insertBlocks(s, [heading(1, [text('Title')]), paragraph([text('body')])])
+    expect(next.doc.children.map((b) => b.type)).toEqual(['paragraph', 'heading', 'paragraph'])
+    expect(next.selection.head).toEqual({ path: [2], offset: 4 })
+  })
+
+  it('splits a non-empty block around multi-block content', () => {
+    const s = state(doc(paragraph([text('headtail')])), caret([0], 4))
+    const next = insertBlocks(s, [quote([text('q')]), paragraph([text('p')])])
+    expect(next.doc.children.map((b) => b.type)).toEqual(['paragraph', 'quote', 'paragraph', 'paragraph'])
+    expect(blockText(next.doc.children[0]!)).toBe('head')
+    expect(blockText(next.doc.children[3]!)).toBe('tail')
+  })
+
+  it('refuses multi-block pastes inside a table cell but allows inline ones', () => {
+    const d = doc(emptyTable(2, 2))
+    const s = state(d, caret([0, 0, 0], 0))
+    expect(insertBlocks(s, [paragraph([text('x')]), paragraph([text('y')])])).toBe(s)
+    const inline = insertBlocks(s, [paragraph([text('cell')])])
+    expect(blockText(blockAt(inline.doc, [0, 0, 0])!)).toBe('cell')
   })
 })

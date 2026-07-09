@@ -13,6 +13,8 @@ packages/
   react/            @custom-wysiwyg/react            React/Next.js bindings ('use client', SSR-safe)
   export-markdown/  @custom-wysiwyg/export-markdown  model → Markdown
   export-html/      @custom-wysiwyg/export-html      model → clean HTML
+  import-markdown/  @custom-wysiwyg/import-markdown  Markdown → model (HTML → model lives in core)
+  agent-adapter/    @custom-wysiwyg/agent-adapter    agent seam: context out, undoable markdown/stream edits in
 ```
 
 Every package ships ESM + CJS + type declarations; `core` and the exporters also ship self-contained IIFE bundles for `<script>` embedding.
@@ -99,7 +101,7 @@ Markdown has no alignment syntax, so aligned blocks fall back to inline HTML (Co
 
 ## What works today
 
-- Typing, Enter (block split), Backspace/Delete (incl. cross-block merge), paste as plain text
+- Typing, Enter (block split), Backspace/Delete (incl. cross-block merge); **rich paste** — clipboard HTML becomes real blocks (lists, headings, marks), plain text as fallback
 - Bold / italic / inline code / links; Cmd/Ctrl+B, Cmd/Ctrl+I; stored marks (toggle then type)
 - **Text color, highlight, and font size** via the bubble-menu palette — exports as `<span style>` in HTML, inline-HTML fallback in Markdown (`styledText: 'plain'` to drop)
 - Paragraphs, headings h1–h3, text alignment
@@ -121,9 +123,8 @@ See **[.gravity/IMPLEMENTATION_PLAN.md](.gravity/IMPLEMENTATION_PLAN.md)** — t
 (phases + per-domain status). Architecture invariants live in [CLAUDE.md](CLAUDE.md);
 the agent-integration seam in [.gravity/integration/PLAN.md](.gravity/integration/PLAN.md). Highlights:
 
-- Phases 2–3 ✅ complete: tree, lists, to-dos, quotes, code blocks, dividers, callouts, tables
-- Phase 4: block handles — drag to reorder, hover `+` to insert
-- Parallel: HTML/Markdown import, gravity adapter (`editor.transact` contract is ready)
+- Phases 0–4 ✅ + import + agent adapter — all planned arcs shipped
+- Open: first live LLM session, font family, custom colors, publishing setup (npm scope)
 
 ## Development
 

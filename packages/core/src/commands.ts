@@ -13,7 +13,7 @@ import type {
 } from './model/types'
 import { DEFAULT_CALLOUT_EMOJI } from './model/types'
 import type { Position, SelectionRange } from './model/position'
-import { clampPosition, collapsedSelection, comparePositions, orderedRange } from './model/position'
+import { clampPosition, collapsedSelection, comparePositions, orderedRange, selectionsEqual } from './model/position'
 import { blockLength, blockText, marksAtOffset, marksEqual, normalizeSpans, sliceSpans } from './model/spans'
 import type { BlockPath } from './model/path'
 import {
@@ -648,6 +648,80 @@ export function outdentListItem(state: EditorState): EditorState | null {
 }
 
 /**
+ * Inserts parsed blocks (e.g. from a rich paste) at the selection. A single
+ * childless paragraph splices inline into the current block, keeping its
+ * marks; anything more splits the current block and inserts the blocks
+ * between the halves. Multi-block content never enters a table cell.
+ */
+export function insertBlocks(
+  state: EditorState,
+  blocks: BlockNode[],
+  options: { /** Splice a lone childless paragraph inline (paste behavior). Default true. */ inline?: boolean } = {},
+): EditorState {
+  if (blocks.length === 0) return state
+  const { from, to } = orderedRange(state.doc, state.selection)
+  if (!sameEditScope(state.doc, from.path, to.path)) return state
+  let docNode = state.doc
+  if (comparePositions(from, to) !== 0) docNode = deleteRangeInDoc(docNode, from, to)
+  const target = blockAt(docNode, from.path)
+  if (!target || target.type === 'divider' || target.type === 'table' || target.type === 'tableRow') return state
+
+  const first = blocks[0]!
+  const inlineOnly =
+    (options.inline ?? true) && blocks.length === 1 && first.type === 'paragraph' && (first.children?.length ?? 0) === 0
+  if (inlineOnly) {
+    const content = normalizeSpans([
+      ...sliceSpans(target.content, 0, from.offset),
+      ...first.content,
+      ...sliceSpans(target.content, from.offset, blockLength(target)),
+    ])
+    const caret = { path: from.path, offset: from.offset + first.content.reduce((n, s) => n + s.text.length, 0) }
+    return {
+      doc: replaceBlockAt(docNode, from.path, (block) => ({ ...block, content })),
+      selection: collapsedSelection(caret),
+      storedMarks: null,
+    }
+  }
+  if (cellContext(docNode, from.path)) return state
+
+  const len = blockLength(target)
+  const emptyTarget = len === 0 && (target.children?.length ?? 0) === 0 && target.type === 'paragraph'
+  if (emptyTarget) {
+    docNode = spliceBlocksAt(docNode, from.path, blocks)
+    const index = from.path[from.path.length - 1]!
+    const lastPathInserted = [...from.path.slice(0, -1), index + blocks.length - 1]
+    const endPath = lastDescendantPath(docNode, lastPathInserted)
+    const endBlock = blockAt(docNode, endPath)
+    return {
+      doc: docNode,
+      selection: collapsedSelection({ path: endPath, offset: endBlock ? blockLength(endBlock) : 0 }),
+      storedMarks: null,
+    }
+  }
+
+  // Split the target at the caret and slot the blocks between the halves.
+  const before = normalizeSpans(sliceSpans(target.content, 0, from.offset))
+  const after = normalizeSpans(sliceSpans(target.content, from.offset, len))
+  const tail: BlockNode = withChildren({ ...target, content: after }, target.children)
+  docNode = replaceBlockAt(docNode, from.path, (block) => withChildren({ ...block, content: before }, undefined))
+  const keepTail = after.length > 0 || (target.children?.length ?? 0) > 0
+  const inserted = keepTail ? [...blocks, tail] : blocks
+  let anchor = from.path
+  for (const block of inserted) {
+    docNode = insertBlockAfter(docNode, anchor, block)
+    anchor = siblingAfter(anchor)
+  }
+  const lastInsertedPath = keepTail ? [...anchor.slice(0, -1), anchor[anchor.length - 1]! - 1] : anchor
+  const endPath = lastDescendantPath(docNode, lastInsertedPath)
+  const endBlock = blockAt(docNode, endPath)
+  return {
+    doc: docNode,
+    selection: collapsedSelection({ path: endPath, offset: endBlock ? blockLength(endBlock) : 0 }),
+    storedMarks: null,
+  }
+}
+
+/**
  * Moves the block at `from` (with its subtree) to sit before or after the
  * block at `to`. Table structure can't be moved or targeted (v1), nor can a
  * block move into its own subtree.
@@ -801,6 +875,45 @@ export function deleteTableColumn(state: EditorState): EditorState | null {
     selection: collapsedSelection({ path: [...ctx.tablePath, ctx.rowIndex, colIndex], offset: 0 }),
     storedMarks: null,
   }
+}
+
+/** The last block of the subtree rooted at `path`, in document order. */
+function lastDescendantPath(docNode: DocNode, path: BlockPath): BlockPath {
+  let current = path
+  for (;;) {
+    const block = blockAt(docNode, current)
+    const children = block?.children
+    if (!block || !children || children.length === 0) return current
+    current = [...current, children.length - 1]
+  }
+}
+
+/**
+ * Selects the whole block at `path` (its text through the end of its last
+ * descendant). Defaults to the caret's block. When that exact range is
+ * already selected, escalates to the parent block — so repeated Esc walks
+ * up the tree. Inside a table, selection stops at the cell wall.
+ */
+export function selectBlock(state: EditorState, path?: BlockPath): EditorState | null {
+  let target = path ?? state.selection.head.path
+  const ctx = cellContext(state.doc, target)
+  if (ctx) target = ctx.cellPath
+  const block = blockAt(state.doc, target)
+  if (!block) return null
+  const makeRange = (blockPath: BlockPath): SelectionRange => {
+    const endPath = lastDescendantPath(state.doc, blockPath)
+    const endBlock = blockAt(state.doc, endPath)
+    return {
+      anchor: { path: blockPath, offset: 0 },
+      head: { path: endPath, offset: endBlock ? blockLength(endBlock) : 0 },
+    }
+  }
+  let range = makeRange(target)
+  if (!path && selectionsEqual(range, state.selection) && target.length > 1 && !ctx) {
+    // Already selected: escalate to the parent block.
+    range = makeRange(parentPath(target))
+  }
+  return { ...state, selection: range, storedMarks: null }
 }
 
 /** Moves the selection without touching the document. */

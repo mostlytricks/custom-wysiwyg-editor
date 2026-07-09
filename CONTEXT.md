@@ -9,33 +9,37 @@
 Last touched: 2026-07-09
 
 ## Completed
+- **v0.2.2 cut** (patch: agent adapter is a feature, no breaking). Three tags now
+  pending owner push after merge: v0.2.0 → 5bbf7dc, v0.2.1 → 555cbaf, v0.2.2 →
+  the `release: v0.2.2` commit.
+- **Agent adapter shipped — every planned arc is now done.** Pipe milestone proven
+  in Chromium (transact edit + exactly-one change event + byte-identical undo),
+  then `@custom-wysiwyg/agent-adapter` (7th pkg) designed from that usage:
+  context out (markdown/selection), `applyMarkdown` modes as single undoable
+  transactions, block-buffered `StreamWriter`; scripted 🤖 session in the demo.
+  Design finding: core `insertBlocks` needed `{ inline?: boolean }` — streamed
+  continuations must not splice into the previous block. Gate green: 180/180
+  (8 new); browser smoke 125/125 across eleven suites (15 new).
+- **v0.2.1 cut** (patch: import + Phase 4 are features, no breaking — per the
+  pre-1.0 rule). Tag pending owner push, same as v0.2.0: from a local clone,
+  `git tag v0.2.1 <release-sha> && git push origin v0.2.1`.
 - **v0.2.0 cut** (`release: v0.2.0` on the branch; tag exists locally — the git
   proxy rejects tag pushes (403), so tag `5bbf7dc` as v0.2.0 and push from a
   local clone after merge).
-- **Phase 4 first slice: block chrome shipped.** `BlockGutter` widget (hover
-  `+`/`⠿`), `moveBlock` command with guards, HTML5 drag-reorder with drop
-  indicator, handle-click block selection; `+` pre-opens the slash menu; slash
-  matches h1/h2/h3. Gate green: 150/150 (4 new); browser smoke 84/84 across
-  seven suites (7 new). Remaining Phase 4: full block-selection mode (Esc,
-  multi-block), table hover chrome.
-- **Phase 3 complete: tables shipped** (planned in `core/PLAN.tables.md`, outcome
-  recorded there). Tables are ordinary tree nodes (table→row→cell) with cell-wall
-  guards, Tab/Enter navigation that grows at the edge, row/column commands,
-  column alignment on table attrs, GFM + thead/th export. Gate green: 146/146
-  (14 new); browser smoke 77/77 across six suites (11 new). SPEC +3 contract
-  rows + table gotchas; core spine stays ✓ (Phases 2–3 done).
 
 ## Current State
-- 5-package monorepo. Phases 0-3 done: full block set (paragraphs, headings, lists,
-  todos, quotes, code blocks, dividers, callouts, tables) + styling marks
-  (color/highlight/fontSize) + slash/bubble UI, all exporting to Markdown (GFM) + HTML.
+- **7-package monorepo, every planned arc shipped**: Phases 0-4 (full block set through
+  tables, block chrome, Esc selection), styling marks, HTML/Markdown import + rich
+  paste, and the agent adapter — all exporting to Markdown (GFM) + HTML, 180 unit
+  tests + 125 Chromium checks across eleven smoke suites.
 - Table v1 walls (no merges, inline-only cells, select-all stops at tables) are
-  documented in `core/SPEC.md` Gotchas; table hover chrome deferred to Phase 4.
-- Known polish debt unchanged: link button uses `window.prompt`; undo after autoformat
-  doesn't restore literal `**` syntax; no HTML/Markdown import yet.
+  documented in `core/SPEC.md` Gotchas.
+- Known polish debt: link button uses `window.prompt`; undo after autoformat doesn't
+  restore literal `**` syntax.
 
 ## Next Step
-- **Finish Phase 4**: full block-selection mode (Esc enters it, arrow/multi-block
-  selection, Backspace deletes whole blocks) + table hover chrome (add/remove
-  row/column buttons on hover). Alternatives: HTML/Markdown import, or the
-  gravity agent adapter (`integration/PLAN.md`).
+- **First live agent pass** (owner's call per `integration/PLAN.md`: Claude via MCP
+  or a local API script — the adapter is agent-agnostic). Otherwise: formatting
+  open slices (font family, custom colors), publishing setup (npm scope), or cut
+  the next release when evidence accumulates. Tags v0.2.0/v0.2.1 still pending
+  owner push (see git history for SHAs).

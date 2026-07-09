@@ -44,7 +44,7 @@ Gate first — *is it a domain?* (own principle, rules worth a SPEC, a multi-ste
 
 ```bash
 npm install          # workspace deps
-npm run build        # tsup, runs packages in dependency order (core → ui → exporters → react)
+npm run build        # tsup, runs packages in dependency order (core → ui → exporters → import → agent-adapter → react)
 npm test             # vitest: packages/*/test (DOM tests via happy-dom)
 npm run typecheck    # strict tsc across all packages
 ```
@@ -55,6 +55,8 @@ npm run typecheck    # strict tsc across all packages
 - `packages/ui` — framework-free DOM widgets (BubbleMenu, SlashMenu).
 - `packages/react` — React bindings + wrappers. `'use client'` is added by tsup banner.
 - `packages/export-markdown`, `packages/export-html` — serializers (model in, string out; no DOM).
+- `packages/import-markdown` — Markdown → model parser (the GFM subset the exporter emits). HTML → model lives in core (`parse/html.ts`, powers rich paste).
+- `packages/agent-adapter` — the agent seam: markdown context out, undoable markdown/block/stream edits in (see `.gravity/integration/PLAN.md`).
 - `examples/vanilla/index.html` — demo used by the Playwright smoke tests (loads `dist/*.global.js`, so build first).
 
 ## Architecture rules
@@ -75,7 +77,7 @@ way: stale selection on Ctrl+B right after Shift+Home.
 ## Releasing
 
 Version source of truth: the git tag `vX.Y.Z` + the root `package.json` `version`
-(the five workspace packages bump in lockstep). Changes accumulate in
+(all workspace packages bump in lockstep). Changes accumulate in
 `CHANGELOG.md` `[Unreleased]`. To cut: run `/cut-release custom-wysiwyg-editor`
 from the workspace — it proposes the bump from the `[Unreleased]` evidence
 (pre-1.0: breaking → minor, feature/fix → patch), runs the gate

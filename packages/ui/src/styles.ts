@@ -96,6 +96,42 @@ const CSS = `
   gap: 1px;
   align-items: center;
 }
+.cwe-table-menu {
+  position: fixed;
+  z-index: 9998;
+  display: flex;
+  gap: 1px;
+  padding: 2px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(15, 15, 15, 0.12);
+}
+.cwe-table-menu button {
+  font: inherit;
+  font-size: 11px;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  padding: 3px 7px;
+  cursor: pointer;
+  color: #37352f;
+}
+.cwe-table-menu button:hover {
+  background: rgba(55, 53, 47, 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  .cwe-table-menu {
+    background: #252525;
+    border-color: rgba(255, 255, 255, 0.13);
+  }
+  .cwe-table-menu button {
+    color: #d4d4d4;
+  }
+  .cwe-table-menu button:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
 .cwe-gutter-btn {
   font: inherit;
   font-size: 14px;

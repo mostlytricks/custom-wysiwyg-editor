@@ -8,11 +8,41 @@ is the git tag `vX.Y.Z` + the root `package.json` `version` (never prose) — se
 custom-wysiwyg-editor` from the workspace).
 
 > Pre-1.0 on purpose — the model/API may still change (until 1.0.0: breaking → minor,
-> feature/fix → patch). The five workspace packages version in lockstep with the root.
+> feature/fix → patch). The workspace packages version in lockstep with the root.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-07-09
+
 ### Added
+- **`@custom-wysiwyg/agent-adapter`** (7th package) — the agent seam, packaged:
+  `connectAgent(editor)` gives `getContext()` (markdown + selection + selected
+  text), debounced `onContext`, `applyMarkdown`/`applyBlocks` with
+  `insert | append | replaceDocument` modes (each a single undoable transaction
+  with origin 'agent'), and `createStreamWriter()` that buffers streamed output
+  into block-sized transactions. Demo gains a 🤖 button running a scripted agent
+  session end to end. Core `insertBlocks` gains an `{ inline?: boolean }` option
+  (streamed continuations must never splice into the previous block); empty
+  markdown payloads are rejected at the adapter.
+
+## [0.2.1] - 2026-07-09
+
+### Added
+- **HTML & Markdown import.** `parseHTML(html)` in core — the inverse of the
+  view/HTML exporter (headings, lists, todos, quotes, code, dividers, callouts,
+  tables incl. column alignment, styled spans back to marks; unknown elements
+  flatten, loose inline runs become paragraphs). **Rich paste**: clipboard
+  `text/html` now becomes real blocks via the new `insertBlocks` command
+  (single paragraphs splice inline keeping marks; multi-block payloads split
+  the current block; cell walls hold — plain text stays the fallback). New
+  `@custom-wysiwyg/import-markdown` package: `parseMarkdown` for the GFM
+  subset the exporter emits (round-trip tested); inline HTML degrades to
+  plain text.
+- **Phase 4 completed**: `selectBlock` command + **Esc block selection** (Esc
+  selects the caret's block subtree, repeated Esc walks up to the parent, cell
+  walls respected; the gutter handle reuses it) and **table chrome** — a
+  `TableMenu` widget showing +Row/+Col/−Row/−Col/✕ while the caret is inside a
+  table (plus a `<TableMenu>` React wrapper).
 - **Block chrome** (Phase 4). Hover gutter on every top-level block: `+` inserts
   a paragraph below with the slash menu pre-opened; `⠿` drags to reorder (HTML5
   DnD with a drop indicator; drops before/after by pointer midpoint) and clicks

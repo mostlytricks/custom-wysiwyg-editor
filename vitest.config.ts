@@ -10,6 +10,8 @@ export default defineConfig({
       '@custom-wysiwyg/core': resolve(root, 'packages/core/src/index.ts'),
       '@custom-wysiwyg/export-html': resolve(root, 'packages/export-html/src/index.ts'),
       '@custom-wysiwyg/export-markdown': resolve(root, 'packages/export-markdown/src/index.ts'),
+      '@custom-wysiwyg/import-markdown': resolve(root, 'packages/import-markdown/src/index.ts'),
+      '@custom-wysiwyg/agent-adapter': resolve(root, 'packages/agent-adapter/src/index.ts'),
       '@custom-wysiwyg/react': resolve(root, 'packages/react/src/index.tsx'),
       '@custom-wysiwyg/ui': resolve(root, 'packages/ui/src/index.ts'),
     },

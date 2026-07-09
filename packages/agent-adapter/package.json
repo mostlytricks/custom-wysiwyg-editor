@@ -1,7 +1,7 @@
 {
-  "name": "@custom-wysiwyg/core",
+  "name": "@custom-wysiwyg/agent-adapter",
   "version": "0.2.2",
-  "description": "Framework-agnostic WYSIWYG editor core: JSON document model, transactions, and a contenteditable view",
+  "description": "The agent seam for @custom-wysiwyg/core: markdown context out, undoable markdown/block edits in, block-buffered streaming",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -21,11 +21,10 @@
     "build": "tsup",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": [
-    "wysiwyg",
-    "editor",
-    "contenteditable",
-    "rich-text"
-  ],
+  "dependencies": {
+    "@custom-wysiwyg/core": "*",
+    "@custom-wysiwyg/export-markdown": "*",
+    "@custom-wysiwyg/import-markdown": "*"
+  },
   "license": "MIT"
 }
