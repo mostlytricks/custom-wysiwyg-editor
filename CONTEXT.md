@@ -19,8 +19,10 @@ Last touched: 2026-07-09
   the transform, so one Ctrl+Z restores `**bold**` before a second removes it
   (`packages/core/src/editor.ts`). Gate green: 186/186 (6 new — 1 core
   beforeinput-driven undo test, 5 ui link-editor tests).
-- **v0.2.2 cut** (patch). Three tags pending owner push after merge: v0.2.0 →
-  5bbf7dc, v0.2.1 → 555cbaf, v0.2.2 → the `release: v0.2.2` commit.
+- **v0.2.3 cut** (patch; commit `9736d8b`, tag `v0.2.3` created locally, not pushed).
+  Tags pending owner push: v0.2.0 → 5bbf7dc, v0.2.1 → 555cbaf, v0.2.2 →
+  `release: v0.2.2` commit, v0.2.3 → 9736d8b (only v0.1.0 and v0.2.3 tags exist
+  locally — the rest still need backfilling from a clone).
 
 ## Current State
 - **7-package monorepo, every planned arc shipped**: Phases 0-4 (full block set through
