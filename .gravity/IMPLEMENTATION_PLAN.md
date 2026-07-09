@@ -17,12 +17,12 @@ editing experience**, with a clean **agent-integration seam** so external agents
 
 | Domain | Status | One line |
 |---|---|---|
-| `core` | ✓ | engine (model/commands/view/input rules) — **Phases 2–3 complete** (tree, paths, full block set incl. tables with GFM export); **Phases 2–4 complete**. `core/SPEC.md` |
+| `core` | ✓ | engine (model/commands/view/input rules/parseHTML) — **Phases 2–4 complete**: tree, paths, full block set incl. tables, block chrome, rich paste. `core/SPEC.md` |
 | `formatting` | ◑ | text styling & alignment — bold/italic/code/link/align shipped; **color/highlight/fontSize marks + bubble palette shipped**; open: font family, block indent. `formatting/SPEC.md` |
 | `integration` | ○ | the agent-adapter seam — editor-side contract shipped; adapter + round-trip smoke not started. `integration/PLAN.md` |
 | ui | ✓ | framework-free widgets (BubbleMenu, SlashMenu) — no folder yet; mint when it grows rules |
 | react | ✓ | bindings (`useEditor`/`<Editor>`, SSR-safe) — no folder yet |
-| export | ✓ | markdown + html serializers — no folder yet; Phase 2/3 will touch both |
+| export | ✓ | markdown + html serializers + markdown importer — no folder yet |
 
 ## Phase 0 — Walking skeleton ✅ (done)
 

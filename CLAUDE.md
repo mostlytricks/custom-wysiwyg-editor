@@ -76,7 +76,7 @@ way: stale selection on Ctrl+B right after Shift+Home.
 ## Releasing
 
 Version source of truth: the git tag `vX.Y.Z` + the root `package.json` `version`
-(the five workspace packages bump in lockstep). Changes accumulate in
+(all workspace packages bump in lockstep). Changes accumulate in
 `CHANGELOG.md` `[Unreleased]`. To cut: run `/cut-release custom-wysiwyg-editor`
 from the workspace — it proposes the bump from the `[Unreleased]` evidence
 (pre-1.0: breaking → minor, feature/fix → patch), runs the gate

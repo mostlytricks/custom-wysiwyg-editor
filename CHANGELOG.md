@@ -8,7 +8,7 @@ is the git tag `vX.Y.Z` + the root `package.json` `version` (never prose) — se
 custom-wysiwyg-editor` from the workspace).
 
 > Pre-1.0 on purpose — the model/API may still change (until 1.0.0: breaking → minor,
-> feature/fix → patch). The five workspace packages version in lockstep with the root.
+> feature/fix → patch). The workspace packages version in lockstep with the root.
 
 ## [Unreleased]
 
