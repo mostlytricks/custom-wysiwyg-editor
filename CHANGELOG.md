@@ -13,6 +13,11 @@ custom-wysiwyg-editor` from the workspace).
 ## [Unreleased]
 
 ### Added
+- **Phase 4 completed**: `selectBlock` command + **Esc block selection** (Esc
+  selects the caret's block subtree, repeated Esc walks up to the parent, cell
+  walls respected; the gutter handle reuses it) and **table chrome** — a
+  `TableMenu` widget showing +Row/+Col/−Row/−Col/✕ while the caret is inside a
+  table (plus a `<TableMenu>` React wrapper).
 - **Block chrome** (Phase 4). Hover gutter on every top-level block: `+` inserts
   a paragraph below with the slash menu pre-opened; `⠿` drags to reorder (HTML5
   DnD with a drop indicator; drops before/after by pointer midpoint) and clicks

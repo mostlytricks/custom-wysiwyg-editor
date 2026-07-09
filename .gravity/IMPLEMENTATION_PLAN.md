@@ -17,7 +17,7 @@ editing experience**, with a clean **agent-integration seam** so external agents
 
 | Domain | Status | One line |
 |---|---|---|
-| `core` | ✓ | engine (model/commands/view/input rules) — **Phases 2–3 complete** (tree, paths, full block set incl. tables with GFM export); next structural work is Phase 4 block chrome. `core/SPEC.md` |
+| `core` | ✓ | engine (model/commands/view/input rules) — **Phases 2–3 complete** (tree, paths, full block set incl. tables with GFM export); **Phases 2–4 complete**. `core/SPEC.md` |
 | `formatting` | ◑ | text styling & alignment — bold/italic/code/link/align shipped; **color/highlight/fontSize marks + bubble palette shipped**; open: font family, block indent. `formatting/SPEC.md` |
 | `integration` | ○ | the agent-adapter seam — editor-side contract shipped; adapter + round-trip smoke not started. `integration/PLAN.md` |
 | ui | ✓ | framework-free widgets (BubbleMenu, SlashMenu) — no folder yet; mint when it grows rules |
@@ -59,13 +59,13 @@ Rules to respect while doing it: `core/SPEC.md`.
 - [x] Cell-aware selection; Tab/Shift+Tab + Enter navigation (grow at the edge); add/remove row/column/table via commands (hover chrome deferred to Phase 4)
 - [x] Markdown export as GFM tables (first row = header, pipe escaping, `:-:`/`--:` column alignment via `setAlign` in a cell); HTML `thead/th` + `tbody/td`
 
-## Phase 4 — Blocks as objects
+## Phase 4 — Blocks as objects ✅ (done)
 
 - [x] Hover gutter: `⠿` drag handle + `+` insert button (inserts a paragraph below with the slash menu pre-opened)
 - [x] Drag-and-drop block reordering (`moveBlock` command with subtree, guards vs no-op/descendant/table structure; HTML5 DnD + drop indicator)
 - [x] Click the handle to select the whole block (subtree text selection)
-- [ ] Full block-selection mode (Esc to enter, multi-block, keyboard) — open
-- [ ] Table hover chrome (add/remove row/column buttons) — open
+- [x] Esc block selection: selects the caret block subtree, repeated Esc escalates to the parent; typing/Backspace act on the whole block; stops at cell walls (native Shift+Arrow already extends across blocks)
+- [x] Table chrome: caret-in-table toolbar (`TableMenu` widget) with +Row/+Col/−Row/−Col/✕ over the existing commands
 
 ## Formatting track (`formatting/SPEC.md`)
 

@@ -75,6 +75,7 @@ All asserted in `packages/core/test/commands.test.ts`:
 - given endpoints in different table cells (or one inside, one outside), when a structural edit runs (insert/delete/split) → no-op; Backspace at cell start and in the block after a table never merges `[test:cell walls]`
 - given a caret in a cell, when `setAlign` runs → the **column** aligns via `table.attrs.columnAligns` (GFM model) `[test:column alignment]`
 - given a `moveBlock(from, to, side)`, when the target is the block itself, its descendant, or table structure → null; otherwise the block moves with its whole subtree `[test:moveBlock]`
+- given `selectBlock`, when invoked at a caret → the block's subtree is selected; invoked again → escalates to the parent; inside a table it never crosses the cell wall `[test:selectBlock]`
 - given the caret in a cell, when block conversions run (`setHeading`, …) → table/tableRow/tableCell are skipped `[test:cell walls]`
 
 ## Gotchas

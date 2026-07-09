@@ -133,6 +133,7 @@ export {
   outdentListItem,
   removeMark,
   selectAll,
+  selectBlock,
   setAlign,
   setCallout,
   setCodeBlock,

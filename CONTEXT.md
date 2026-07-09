@@ -9,6 +9,10 @@
 Last touched: 2026-07-09
 
 ## Completed
+- **Phase 4 complete.** `selectBlock` command + Esc block selection (escalating,
+  cell-wall aware); `TableMenu` caret-in-table toolbar over the row/column
+  commands; gutter handle-click now reuses `selectBlock`. Gate green: 153/153
+  (3 new); browser smoke 94/94 across eight suites (10 new). Phases 0-4 all done.
 - **v0.2.0 cut** (`release: v0.2.0` on the branch; tag exists locally — the git
   proxy rejects tag pushes (403), so tag `5bbf7dc` as v0.2.0 and push from a
   local clone after merge).
@@ -18,12 +22,6 @@ Last touched: 2026-07-09
   matches h1/h2/h3. Gate green: 150/150 (4 new); browser smoke 84/84 across
   seven suites (7 new). Remaining Phase 4: full block-selection mode (Esc,
   multi-block), table hover chrome.
-- **Phase 3 complete: tables shipped** (planned in `core/PLAN.tables.md`, outcome
-  recorded there). Tables are ordinary tree nodes (table→row→cell) with cell-wall
-  guards, Tab/Enter navigation that grows at the edge, row/column commands,
-  column alignment on table attrs, GFM + thead/th export. Gate green: 146/146
-  (14 new); browser smoke 77/77 across six suites (11 new). SPEC +3 contract
-  rows + table gotchas; core spine stays ✓ (Phases 2–3 done).
 
 ## Current State
 - 5-package monorepo. Phases 0-3 done: full block set (paragraphs, headings, lists,
@@ -35,7 +33,8 @@ Last touched: 2026-07-09
   doesn't restore literal `**` syntax; no HTML/Markdown import yet.
 
 ## Next Step
-- **Finish Phase 4**: full block-selection mode (Esc enters it, arrow/multi-block
-  selection, Backspace deletes whole blocks) + table hover chrome (add/remove
-  row/column buttons on hover). Alternatives: HTML/Markdown import, or the
-  gravity agent adapter (`integration/PLAN.md`).
+- Pick the next arc: **HTML/Markdown import** (the biggest compatibility gap:
+  rich paste + loading saved content) or the **gravity agent adapter**
+  (`integration/PLAN.md` — round-trip smoke, then a real agent driving
+  `transact`). Formatting track also has open slices (font family, custom
+  colors). Consider cutting v0.3.0 once one of these lands.

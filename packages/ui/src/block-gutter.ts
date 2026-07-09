@@ -1,5 +1,5 @@
 import type { Editor } from '@custom-wysiwyg/core'
-import { attrToPath, blockAt, blockLength, lastPath, pathToAttr } from '@custom-wysiwyg/core'
+import { attrToPath, blockAt, blockLength, pathToAttr } from '@custom-wysiwyg/core'
 import { injectStyles } from './styles'
 
 /**
@@ -136,20 +136,8 @@ export class BlockGutter {
     if (!this.hoveredEl) return
     const path = this.pathOf(this.hoveredEl)
     if (!path) return
-    const state = this.editor.getState()
-    const block = blockAt(state.doc, path)
-    if (!block) return
-    // Select the block's whole subtree: start of its text to the end of its
-    // last descendant's text.
-    const sub = { type: 'doc' as const, children: [block] }
-    const tail = lastPath(sub)
-    const endPath = [...path, ...tail.slice(1)]
-    const endBlock = blockAt(state.doc, endPath)
     this.editor.focus()
-    this.editor.commands.setSelection({
-      anchor: { path, offset: 0 },
-      head: { path: endPath, offset: endBlock ? blockLength(endBlock) : 0 },
-    })
+    this.editor.commands.selectBlock(path)
   }
 
   private onDragStart(event: DragEvent): void {

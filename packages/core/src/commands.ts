@@ -13,7 +13,7 @@ import type {
 } from './model/types'
 import { DEFAULT_CALLOUT_EMOJI } from './model/types'
 import type { Position, SelectionRange } from './model/position'
-import { clampPosition, collapsedSelection, comparePositions, orderedRange } from './model/position'
+import { clampPosition, collapsedSelection, comparePositions, orderedRange, selectionsEqual } from './model/position'
 import { blockLength, blockText, marksAtOffset, marksEqual, normalizeSpans, sliceSpans } from './model/spans'
 import type { BlockPath } from './model/path'
 import {
@@ -801,6 +801,45 @@ export function deleteTableColumn(state: EditorState): EditorState | null {
     selection: collapsedSelection({ path: [...ctx.tablePath, ctx.rowIndex, colIndex], offset: 0 }),
     storedMarks: null,
   }
+}
+
+/** The last block of the subtree rooted at `path`, in document order. */
+function lastDescendantPath(docNode: DocNode, path: BlockPath): BlockPath {
+  let current = path
+  for (;;) {
+    const block = blockAt(docNode, current)
+    const children = block?.children
+    if (!block || !children || children.length === 0) return current
+    current = [...current, children.length - 1]
+  }
+}
+
+/**
+ * Selects the whole block at `path` (its text through the end of its last
+ * descendant). Defaults to the caret's block. When that exact range is
+ * already selected, escalates to the parent block — so repeated Esc walks
+ * up the tree. Inside a table, selection stops at the cell wall.
+ */
+export function selectBlock(state: EditorState, path?: BlockPath): EditorState | null {
+  let target = path ?? state.selection.head.path
+  const ctx = cellContext(state.doc, target)
+  if (ctx) target = ctx.cellPath
+  const block = blockAt(state.doc, target)
+  if (!block) return null
+  const makeRange = (blockPath: BlockPath): SelectionRange => {
+    const endPath = lastDescendantPath(state.doc, blockPath)
+    const endBlock = blockAt(state.doc, endPath)
+    return {
+      anchor: { path: blockPath, offset: 0 },
+      head: { path: endPath, offset: endBlock ? blockLength(endBlock) : 0 },
+    }
+  }
+  let range = makeRange(target)
+  if (!path && selectionsEqual(range, state.selection) && target.length > 1 && !ctx) {
+    // Already selected: escalate to the parent block.
+    range = makeRange(parentPath(target))
+  }
+  return { ...state, selection: range, storedMarks: null }
 }
 
 /** Moves the selection without touching the document. */

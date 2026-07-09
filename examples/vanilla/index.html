@@ -92,7 +92,7 @@
     <script src="../../packages/export-html/dist/index.global.js"></script>
     <script>
       const { Editor, doc: d, paragraph, heading, text } = CustomWysiwyg
-      const { BubbleMenu, SlashMenu, BlockGutter } = CustomWysiwygUI
+      const { BubbleMenu, SlashMenu, BlockGutter, TableMenu } = CustomWysiwygUI
       const { serializeMarkdown } = CustomWysiwygMarkdown
       const { serializeHTML } = CustomWysiwygHTML
 
@@ -124,6 +124,7 @@
       new BubbleMenu(editor)
       new SlashMenu(editor)
       new BlockGutter(editor)
+      new TableMenu(editor)
     </script>
   </body>
 </html>

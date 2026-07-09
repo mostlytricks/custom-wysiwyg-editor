@@ -15,6 +15,7 @@ import {
   BlockGutter as BlockGutterWidget,
   BubbleMenu as BubbleMenuWidget,
   SlashMenu as SlashMenuWidget,
+  TableMenu as TableMenuWidget,
   type BubbleMenuOptions,
   type SlashMenuItem,
 } from '@custom-wysiwyg/ui'
@@ -131,6 +132,16 @@ export function BlockGutter({ editor }: { editor: CoreEditor | null }) {
   useEffect(() => {
     if (!editor) return
     const widget = new BlockGutterWidget(editor)
+    return () => widget.destroy()
+  }, [editor])
+  return null
+}
+
+/** Row/column/table controls shown while the caret is inside a table. */
+export function TableMenu({ editor }: { editor: CoreEditor | null }) {
+  useEffect(() => {
+    if (!editor) return
+    const widget = new TableMenuWidget(editor)
     return () => widget.destroy()
   }, [editor])
   return null

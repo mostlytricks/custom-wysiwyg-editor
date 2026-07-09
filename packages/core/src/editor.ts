@@ -223,6 +223,7 @@ export class Editor {
     setAlign: (align: Alignment): boolean => this.apply(commands.setAlign(this.state, align)),
     selectAll: (): boolean => this.apply(commands.selectAll(this.state)),
     setSelection: (selection: SelectionRange): boolean => this.apply(commands.setSelection(this.state, selection)),
+    selectBlock: (path?: BlockPath): boolean => this.apply(commands.selectBlock(this.state, path)),
     deleteRange: (from: Position, to: Position): boolean => this.apply(commands.deleteRange(this.state, from, to)),
   }
 
@@ -425,6 +426,13 @@ export class Editor {
         if (event.shiftKey) this.commands.outdentListItem()
         else this.commands.indentListItem()
       }
+      return
+    }
+    if (event.key === 'Escape' && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) {
+      // Esc selects the current block; pressing again walks up to the parent.
+      // Widgets that use Esc (slash menu) intercept in the capture phase first.
+      this.syncSelectionFromDOM()
+      if (this.commands.selectBlock()) event.preventDefault()
       return
     }
     const mod = event.metaKey || event.ctrlKey
