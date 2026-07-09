@@ -25,6 +25,7 @@ export const DEFAULT_SLASH_ITEMS: SlashMenuItem[] = [
   { id: 'code', label: 'Code block', icon: '{}', keywords: 'codeblock snippet pre monospace', run: (e) => e.commands.setCodeBlock() },
   { id: 'callout', label: 'Callout', icon: '💡', keywords: 'note info banner aside', run: (e) => e.commands.setCallout() },
   { id: 'divider', label: 'Divider', icon: '—', keywords: 'hr rule separator line', run: (e) => e.commands.insertDivider() },
+  { id: 'table', label: 'Table', icon: '⊞', keywords: 'grid rows columns cells', run: (e) => e.commands.insertTable() },
   { id: 'align-left', label: 'Align left', icon: '⇤', keywords: 'alignment', run: (e) => e.commands.setAlign('left') },
   { id: 'align-center', label: 'Align center', icon: '↔', keywords: 'alignment middle', run: (e) => e.commands.setAlign('center') },
   { id: 'align-right', label: 'Align right', icon: '⇥', keywords: 'alignment', run: (e) => e.commands.setAlign('right') },

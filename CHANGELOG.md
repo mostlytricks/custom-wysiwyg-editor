@@ -13,6 +13,17 @@ custom-wysiwyg-editor` from the workspace).
 ## [Unreleased]
 
 ### Added
+- **Tables** (Phase 3). `table` → `tableRow` → `tableCell` as ordinary tree
+  nodes, so paths, selection mapping, and marks work unchanged. First row is the
+  header. Cell walls: structural edits never cross a cell boundary (cross-cell
+  ranges no-op; Backspace at cell start and after a table never merges); block
+  conversions skip table structure. Tab/Shift+Tab navigate row-major and Enter
+  moves down — both grow the table at the edge. Commands: `insertTable`,
+  `addTableRow`/`addTableColumn`, `deleteTableRow`/`deleteTableColumn`,
+  `deleteTable`; `setAlign` in a cell sets the **column** alignment
+  (`table.attrs.columnAligns`). Slash item "Table". Export: GFM tables with pipe
+  escaping and `:-:`/`--:` markers; HTML `thead/th` + `tbody/td` with per-column
+  `text-align`.
 - **To-dos, blockquotes, code blocks, dividers, callouts** (Phase 2 complete).
   Five new block types: `todo` (checkbox rendered as a real `<input>` — adds no
   text nodes; click toggles via the model; splits start unchecked; GFM `- [ ]`

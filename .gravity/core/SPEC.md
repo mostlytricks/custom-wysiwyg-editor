@@ -72,6 +72,9 @@ All asserted in `packages/core/test/commands.test.ts`:
 - given a code block, when marks are toggled or input rules would fire → nothing happens (verbatim content); Enter inserts '\n', double-Enter on a trailing empty line exits `[test:code blocks]`
 - given a divider, when text would enter or split it → no-op; Backspace from the following block removes it `[test:dividers]`
 - given a checked todo, when it splits → the new todo starts unchecked `[test:to-dos]`
+- given endpoints in different table cells (or one inside, one outside), when a structural edit runs (insert/delete/split) → no-op; Backspace at cell start and in the block after a table never merges `[test:cell walls]`
+- given a caret in a cell, when `setAlign` runs → the **column** aligns via `table.attrs.columnAligns` (GFM model) `[test:column alignment]`
+- given the caret in a cell, when block conversions run (`setHeading`, …) → table/tableRow/tableCell are skipped `[test:cell walls]`
 
 ## Gotchas
 
@@ -87,4 +90,10 @@ All asserted in `packages/core/test/commands.test.ts`:
 - Rendered blocks carry `data-path` ("0", "0.1"); a block's nested children render
   *outside* its data-path element (sibling `.cwe-children` wrapper), so collecting a
   block element's text nodes never leaks child-block text. Don't render child blocks
-  inside the content element — selection mapping counts on this.
+  inside the content element — selection mapping counts on this. **Exception:
+  tables** render rows/cells inline (`<table>/<tr>/<th|td>`, all with data-path) —
+  safe because table and row own no text of their own.
+- Table v1 walls: no cell merges/spans, cells hold inline text only, and select-all
+  + delete no-ops when the range would cross into a table (delete tables via
+  `deleteTable` or a range strictly containing the table). First row is always the
+  header. Enter/Tab in cells is *navigation* (editor layer), never splitting.

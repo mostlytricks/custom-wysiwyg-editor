@@ -179,6 +179,45 @@ export interface CalloutNode {
   children?: BlockNode[]
 }
 
+export interface TableAttrs {
+  /** Per-column alignment (GFM model). Sparse; missing entries mean 'left'. */
+  columnAligns?: Alignment[]
+  /** Never rendered — present so shared command code can read attrs.align uniformly. */
+  align?: Alignment
+}
+
+/** children = tableRow blocks. Own content is always empty. */
+export interface TableNode {
+  type: 'table'
+  attrs?: TableAttrs
+  content: TextSpan[]
+  children?: BlockNode[]
+}
+
+export interface TableRowAttrs {
+  align?: Alignment
+}
+
+/** children = tableCell blocks. Own content is always empty. */
+export interface TableRowNode {
+  type: 'tableRow'
+  attrs?: TableRowAttrs
+  content: TextSpan[]
+  children?: BlockNode[]
+}
+
+export interface TableCellAttrs {
+  align?: Alignment
+}
+
+/** A cell holds inline text only (v1: no nested blocks). */
+export interface TableCellNode {
+  type: 'tableCell'
+  attrs?: TableCellAttrs
+  content: TextSpan[]
+  children?: BlockNode[]
+}
+
 export type BlockNode =
   | ParagraphNode
   | HeadingNode
@@ -188,6 +227,9 @@ export type BlockNode =
   | CodeBlockNode
   | DividerNode
   | CalloutNode
+  | TableNode
+  | TableRowNode
+  | TableCellNode
 export type BlockType = BlockNode['type']
 
 export const DEFAULT_CALLOUT_EMOJI = '💡'
@@ -284,6 +326,25 @@ export function callout(content: TextSpan[] = [], attrs?: CalloutAttrs, children
     content,
     ...(children && children.length > 0 ? { children } : {}),
   }
+}
+
+export function tableCell(content: TextSpan[] = []): TableCellNode {
+  return { type: 'tableCell', content }
+}
+
+export function tableRow(cells: TableCellNode[]): TableRowNode {
+  return { type: 'tableRow', content: [], children: cells }
+}
+
+export function table(rows: TableRowNode[], attrs?: TableAttrs): TableNode {
+  return { type: 'table', ...(attrs ? { attrs } : {}), content: [], children: rows }
+}
+
+/** An empty rows×cols table (first row is the header). */
+export function emptyTable(rows = 3, cols = 3): TableNode {
+  return table(
+    Array.from({ length: rows }, () => tableRow(Array.from({ length: cols }, () => tableCell()))),
+  )
 }
 
 export function doc(...blocks: BlockNode[]): DocNode {

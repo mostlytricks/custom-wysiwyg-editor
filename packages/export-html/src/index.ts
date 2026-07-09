@@ -62,11 +62,32 @@ function serializeTodoToHTML(item: TodoNode): string {
   return `<li${alignStyle(item)}>${own}\n${serializeBlocksToHTML(item.children)}\n</li>`
 }
 
+function serializeTableToHTML(block: BlockNode): string {
+  const aligns = block.type === 'table' ? (block.attrs?.columnAligns ?? []) : []
+  const cellStyle = (col: number): string => {
+    const align = aligns[col]
+    return align && align !== 'left' ? ` style="text-align: ${align}"` : ''
+  }
+  const rows = block.children ?? []
+  const renderRow = (row: BlockNode, tag: 'th' | 'td'): string => {
+    const cells = (row.children ?? [])
+      .map((cell, c) => `<${tag}${cellStyle(c)}>${serializeInlineToHTML(cell.content)}</${tag}>`)
+      .join('')
+    return `<tr>${cells}</tr>`
+  }
+  const header = rows[0] ? `<thead>\n${renderRow(rows[0], 'th')}\n</thead>` : ''
+  const body = rows.slice(1).map((row) => renderRow(row, 'td')).join('\n')
+  const bodyWrapped = body ? `<tbody>\n${body}\n</tbody>` : ''
+  return `<table>\n${[header, bodyWrapped].filter(Boolean).join('\n')}\n</table>`
+}
+
 export function serializeBlockToHTML(block: BlockNode): string {
   if (block.type === 'listItem' || block.type === 'todo') {
     // A lone item still needs a valid list wrapper.
     return serializeBlocksToHTML([block])
   }
+  if (block.type === 'table') return serializeTableToHTML(block)
+  if (block.type === 'tableRow' || block.type === 'tableCell') return ''
   if (block.type === 'divider') return '<hr>'
   if (block.type === 'codeBlock') {
     const language = block.attrs?.language

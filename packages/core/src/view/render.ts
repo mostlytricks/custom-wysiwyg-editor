@@ -74,7 +74,37 @@ function blockTag(block: BlockNode): string {
   }
 }
 
+/**
+ * Tables render their rows/cells inline (not in a sibling wrapper): table and
+ * row own no text, so the nearest data-path ancestor of any text node is
+ * still the cell — offset mapping stays intact.
+ */
+function renderTable(documentRef: Document, block: BlockNode, path: BlockPath): HTMLElement {
+  const tableEl = documentRef.createElement('table')
+  tableEl.className = 'cwe-table'
+  tableEl.setAttribute('data-path', pathToAttr(path))
+  const aligns = block.type === 'table' ? (block.attrs?.columnAligns ?? []) : []
+  const tbody = documentRef.createElement('tbody')
+  ;(block.children ?? []).forEach((row, r) => {
+    const tr = documentRef.createElement('tr')
+    tr.setAttribute('data-path', pathToAttr([...path, r]))
+    ;(row.children ?? []).forEach((cell, c) => {
+      const cellEl = documentRef.createElement(r === 0 ? 'th' : 'td')
+      cellEl.setAttribute('data-path', pathToAttr([...path, r, c]))
+      const align = aligns[c]
+      if (align && align !== 'left') cellEl.style.textAlign = align
+      if (cell.content.length === 0) cellEl.appendChild(documentRef.createElement('br'))
+      else for (const span of cell.content) cellEl.appendChild(renderSpan(documentRef, span))
+      tr.appendChild(cellEl)
+    })
+    tbody.appendChild(tr)
+  })
+  tableEl.appendChild(tbody)
+  return tableEl
+}
+
 export function renderBlock(documentRef: Document, block: BlockNode, path: BlockPath, ordinal?: number): HTMLElement {
+  if (block.type === 'table') return renderTable(documentRef, block, path)
   const el = documentRef.createElement(blockTag(block))
   el.setAttribute('data-path', pathToAttr(path))
   if (block.type === 'listItem') {

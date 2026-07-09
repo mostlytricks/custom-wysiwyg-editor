@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { callout, codeBlock, divider, doc, heading, listItem, paragraph, quote, text, todo } from '@custom-wysiwyg/core'
+import { callout, codeBlock, divider, doc, heading, listItem, paragraph, quote, table, tableCell, tableRow, text, todo } from '@custom-wysiwyg/core'
 import { serializeHTML } from '@custom-wysiwyg/export-html'
 
 describe('serializeHTML', () => {
@@ -102,5 +102,24 @@ describe('phase 2 blocks', () => {
 
   it('serializes dividers', () => {
     expect(serializeHTML(doc(divider()))).toBe('<hr>')
+  })
+})
+
+describe('tables', () => {
+  it('serializes thead/th header and tbody with column alignment', () => {
+    const out = serializeHTML(
+      doc(
+        table(
+          [
+            tableRow([tableCell([text('H')]), tableCell([text('N')])]),
+            tableRow([tableCell([text('a')]), tableCell([text('1')])]),
+          ],
+          { columnAligns: ['left', 'right'] },
+        ),
+      ),
+    )
+    expect(out).toBe(
+      '<table>\n<thead>\n<tr><th>H</th><th style="text-align: right">N</th></tr>\n</thead>\n<tbody>\n<tr><td>a</td><td style="text-align: right">1</td></tr>\n</tbody>\n</table>',
+    )
   })
 })

@@ -72,6 +72,23 @@ const CSS = `
   border-top: 1px solid rgba(55, 53, 47, 0.25);
   margin: 10px 0;
 }
+.cwe-content table.cwe-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+}
+.cwe-content .cwe-table th,
+.cwe-content .cwe-table td {
+  border: 1px solid rgba(55, 53, 47, 0.25);
+  padding: 6px 10px;
+  text-align: left;
+  min-width: 48px;
+  vertical-align: top;
+}
+.cwe-content .cwe-table th {
+  background: rgba(135, 131, 120, 0.09);
+  font-weight: 600;
+}
 .cwe-bubble, .cwe-slash {
   position: fixed;
   z-index: 9999;

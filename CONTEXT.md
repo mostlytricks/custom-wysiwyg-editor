@@ -9,6 +9,12 @@
 Last touched: 2026-07-09
 
 ## Completed
+- **Phase 3 complete: tables shipped** (planned in `core/PLAN.tables.md`, outcome
+  recorded there). Tables are ordinary tree nodes (table→row→cell) with cell-wall
+  guards, Tab/Enter navigation that grows at the edge, row/column commands,
+  column alignment on table attrs, GFM + thead/th export. Gate green: 146/146
+  (14 new); browser smoke 77/77 across six suites (11 new). SPEC +3 contract
+  rows + table gotchas; core spine stays ✓ (Phases 2–3 done).
 - **Phase 2 complete: todo/quote/codeBlock/divider/callout shipped.** Five block
   types with Notion behaviors (checkbox click-to-toggle via real `<input>` —
   no text nodes; verbatim code blocks: marks+rules inert, Enter='\n',
@@ -17,38 +23,19 @@ Last touched: 2026-07-09
   both exporters (GFM tasks, prefixed quotes, fences, `<hr>`, `<aside>`).
   Gate green: 132/132 (27 new); browser smoke 66/66 across five suites
   (16 new). SPEC Behavioral Contract +5 rows; status spine: core → ✓.
-- **Formatting domain minted + first slice shipped.** New `.gravity/formatting/SPEC.md`
-  (mark model: boolean vs valued marks, replace-not-toggle, export fallback policy);
-  wired into Doc Map, router, status spine, and a Formatting track in the plan.
-  Implemented color/highlight/fontSize marks (tokens via `FONT_SIZES`), `applyMark`/
-  `removeMark` commands, `setColor`/`setHighlight`/`setFontSize` (null = remove),
-  bubble-menu palette, `<span style>` HTML export (escaped), Markdown span fallback
-  with `styledText: 'plain'` opt-out. Gate green: 105/105 (11 new); browser smoke
-  50/50 (10 new style checks incl. replace semantics, compose, reset, undo).
-- **Phase 2 groundwork: recursive block tree shipped** (checkboxes 1–2; see git history
-  for the full slice description).
-- **Phase 2, checkbox 3: bulleted/numbered lists shipped.** `listItem` block type
-  (`kind: bullet | ordered`, no wrapper node — runs of same-kind siblings; nesting =
-  the tree). Commands set/toggle/indent/outdent + Tab/Shift+Tab; input rules `- `/`* `/
-  `1. `; Enter-on-empty & Backspace-at-start exit the list (outdent when nested); slash
-  items; CSS-only markers (`data-list`, render-time `data-ordinal`); HTML export groups
-  `<ul>/<ol>` (nested lists inside `<li>`), Markdown emits tight indented lists with
-  per-run numbering. Fixed `setAlign` dropping required attrs on list items ([type] wall
-  caught it). Gate green: typecheck + 94/94 (24 new); browser smoke 40/40 across three
-  suites (13 new list checks: input rules, Tab/Shift+Tab, exit behaviors, ordinals,
-  undo, slash, live exports). SPEC Behavioral Contract gained 4 `[test:lists]` rows.
 
 ## Current State
-- 5-package monorepo; Phases 0–1 done; Phase 2: tree + paths + lists done, remaining:
-  todos, quotes, code blocks, dividers, callouts (checkboxes 4–5).
-- Tree semantics (hoisting, split-children) survived the list slice unchanged and are
-  now partially pinned by `[test:lists]` rows; generic-nesting Markdown still flattens.
+- 5-package monorepo. Phases 0-3 done: full block set (paragraphs, headings, lists,
+  todos, quotes, code blocks, dividers, callouts, tables) + styling marks
+  (color/highlight/fontSize) + slash/bubble UI, all exporting to Markdown (GFM) + HTML.
+- Table v1 walls (no merges, inline-only cells, select-all stops at tables) are
+  documented in `core/SPEC.md` Gotchas; table hover chrome deferred to Phase 4.
 - Known polish debt unchanged: link button uses `window.prompt`; undo after autoformat
-  doesn't restore literal `**` syntax.
+  doesn't restore literal `**` syntax; no HTML/Markdown import yet.
 
 ## Next Step
-- **Phase 3: tables** — table node (rows → cells → inline content), cell-aware
-  selection + Tab/arrow navigation, add/remove row & column UI, GFM export with
-  column alignment (`:---:`). The other candidate is Phase 4 block handles /
-  drag-reorder if tables feel heavy for one session. Read `.gravity/core/SPEC.md`
-  first; tables likely earn a `PLAN.tables.md` slice doc under `core/`.
+- **Phase 4: blocks as objects** — hover gutter (`⠿` drag handle + `+` insert
+  button), drag-and-drop reordering (`moveBlock` command), block-level selection
+  mode. This is also where table hover chrome (add/remove row/col buttons) lands.
+  Alternatives if preferred: HTML/Markdown import (compatibility gap) or the
+  gravity agent adapter (`integration/PLAN.md`).

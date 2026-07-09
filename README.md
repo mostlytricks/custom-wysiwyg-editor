@@ -105,6 +105,7 @@ Markdown has no alignment syntax, so aligned blocks fall back to inline HTML (Co
 - Paragraphs, headings h1–h3, text alignment
 - **Bulleted & numbered lists** with Tab/Shift+Tab nesting, `- `/`1. ` shortcuts, and list-aware Enter/Backspace (empty item exits, marker strips before merge)
 - **To-dos** (clickable checkboxes, GFM `- [ ]` export), **blockquotes**, **code blocks** (verbatim, fenced export), **dividers**, and **callouts** — with `[] `, `> `, ` ``` `, `--- ` shortcuts and slash-menu entries
+- **Tables** — Tab/Enter cell navigation that grows the grid, per-column alignment, GFM export (`:-:`/`--:`) and `<thead>/<th>` HTML
 - Undo/redo with typing coalescing (Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z)
 - IME composition (composed text is applied to the model on compositionend)
 - **Slash menu**: type `/` for a searchable block palette (arrows + Enter, Esc to dismiss, extensible items)
@@ -120,8 +121,7 @@ See **[.gravity/IMPLEMENTATION_PLAN.md](.gravity/IMPLEMENTATION_PLAN.md)** — t
 (phases + per-domain status). Architecture invariants live in [CLAUDE.md](CLAUDE.md);
 the agent-integration seam in [.gravity/integration/PLAN.md](.gravity/integration/PLAN.md). Highlights:
 
-- Phase 2 ✅ complete: tree, lists, to-dos, quotes, code blocks, dividers, callouts
-- Phase 3: tables (GFM export with column alignment)
+- Phases 2–3 ✅ complete: tree, lists, to-dos, quotes, code blocks, dividers, callouts, tables
 - Phase 4: block handles — drag to reorder, hover `+` to insert
 - Parallel: HTML/Markdown import, gravity adapter (`editor.transact` contract is ready)
 

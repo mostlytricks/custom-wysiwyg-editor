@@ -1,6 +1,6 @@
 import type { Alignment, DocNode, FontSizeToken, HeadingLevel, ListKind, Mark, MarkType } from './model/types'
 import type { Position, SelectionRange } from './model/position'
-import { selectionsEqual } from './model/position'
+import { collapsedSelection, selectionsEqual } from './model/position'
 import * as commands from './commands'
 import { runInputRules } from './inputrules'
 import { blockAt, type BlockPath } from './model/path'
@@ -211,6 +211,12 @@ export class Editor {
     setCallout: (emoji?: string): boolean => this.apply(commands.setCallout(this.state, emoji)),
     setCodeBlock: (language?: string): boolean => this.apply(commands.setCodeBlock(this.state, language)),
     insertDivider: (): boolean => this.apply(commands.insertDivider(this.state)),
+    insertTable: (rows?: number, cols?: number): boolean => this.apply(commands.insertTable(this.state, rows, cols)),
+    addTableRow: (): boolean => this.apply(commands.addTableRow(this.state)),
+    addTableColumn: (): boolean => this.apply(commands.addTableColumn(this.state)),
+    deleteTableRow: (): boolean => this.apply(commands.deleteTableRow(this.state)),
+    deleteTableColumn: (): boolean => this.apply(commands.deleteTableColumn(this.state)),
+    deleteTable: (): boolean => this.apply(commands.deleteTable(this.state)),
     setAlign: (align: Alignment): boolean => this.apply(commands.setAlign(this.state, align)),
     selectAll: (): boolean => this.apply(commands.selectAll(this.state)),
     setSelection: (selection: SelectionRange): boolean => this.apply(commands.setSelection(this.state, selection)),
@@ -328,6 +334,12 @@ export class Editor {
       case 'insertParagraph':
       case 'insertLineBreak': {
         event.preventDefault()
+        const cellCtx = commands.cellContext(this.state.doc, this.state.selection.head.path)
+        if (cellCtx && event.inputType === 'insertParagraph') {
+          // Enter in a cell moves to the cell below, growing the table at the edge.
+          this.moveRow(cellCtx)
+          break
+        }
         const block = blockAt(this.state.doc, this.state.selection.head.path)
         if (block?.type === 'codeBlock' && event.inputType === 'insertParagraph') {
           // Enter inside a code block inserts a newline; Enter on an empty
@@ -396,6 +408,12 @@ export class Editor {
     if (this.composing) return
     if (event.key === 'Tab' && !event.metaKey && !event.ctrlKey && !event.altKey) {
       this.syncSelectionFromDOM()
+      const ctx = commands.cellContext(this.state.doc, this.state.selection.head.path)
+      if (ctx) {
+        event.preventDefault()
+        this.moveCell(ctx, event.shiftKey ? -1 : 1)
+        return
+      }
       const block = blockAt(this.state.doc, this.state.selection.head.path)
       if (block?.type === 'listItem') {
         // Swallow Tab inside lists even when the indent doesn't apply —
@@ -433,6 +451,49 @@ export class Editor {
    * selection captured at composition start, and the view is re-rendered from
    * the model — which also discards whatever the browser left in the DOM.
    */
+  /** Tab navigation between cells, row-major; Tab past the last cell grows the table. */
+  private moveCell(ctx: commands.CellContext, direction: 1 | -1): void {
+    const tableBlock = blockAt(this.state.doc, ctx.tablePath)
+    if (!tableBlock) return
+    const rows = tableBlock.children ?? []
+    const cols = rows[ctx.rowIndex]?.children?.length ?? 1
+    let row = ctx.rowIndex
+    let col = ctx.colIndex + direction
+    if (col >= cols) {
+      row += 1
+      col = 0
+    } else if (col < 0) {
+      row -= 1
+      col = (rows[row]?.children?.length ?? 1) - 1
+    }
+    if (row < 0) return
+    if (row >= rows.length) {
+      // Tab past the last cell: grow the table and land on the new row's first cell.
+      if (this.commands.addTableRow()) this.placeCaretInCell([...ctx.tablePath, row, 0])
+      return
+    }
+    this.placeCaretInCell([...ctx.tablePath, row, col])
+  }
+
+  /** Enter navigation: the cell below, adding a row at the bottom edge. */
+  private moveRow(ctx: commands.CellContext): void {
+    const tableBlock = blockAt(this.state.doc, ctx.tablePath)
+    if (!tableBlock) return
+    const rows = tableBlock.children ?? []
+    if (ctx.rowIndex + 1 >= rows.length) {
+      this.commands.addTableRow()
+      return
+    }
+    this.placeCaretInCell([...ctx.tablePath, ctx.rowIndex + 1, ctx.colIndex])
+  }
+
+  private placeCaretInCell(cellPath: BlockPath): void {
+    const cell = blockAt(this.state.doc, cellPath)
+    if (!cell) return
+    const offset = blockLength(cell)
+    this.apply(commands.setSelection(this.state, collapsedSelection({ path: cellPath, offset })))
+  }
+
   /** Checkbox clicks toggle the to-do in the model; the render syncs the input. */
   private onClick = (event: MouseEvent): void => {
     const target = event.target

@@ -99,11 +99,33 @@ function serializeCodeBlock(block: BlockNode, indent: string): string {
   return `${indent}${fence}${language}\n${body}${indent}${fence}`
 }
 
+/** GFM table: first row is the header; column alignment via :-: / --: markers. */
+function serializeTable(block: BlockNode, options: MarkdownSerializeOptions, indent: string): string {
+  const aligns = block.type === 'table' ? (block.attrs?.columnAligns ?? []) : []
+  const rows = (block.children ?? []).map((row) =>
+    (row.children ?? []).map((cell) =>
+      serializeInlineToMarkdown(cell.content, options).replace(/\|/g, '\\|').replace(/\n/g, ' '),
+    ),
+  )
+  const cols = Math.max(1, ...rows.map((cells) => cells.length))
+  const line = (cells: string[]) =>
+    `${indent}| ${Array.from({ length: cols }, (_, i) => cells[i] ?? '').join(' | ')} |`
+  const marker = (align?: string) => (align === 'center' ? ':-:' : align === 'right' ? '--:' : '---')
+  const separator = `${indent}| ${Array.from({ length: cols }, (_, i) => marker(aligns[i])).join(' | ')} |`
+  return [line(rows[0] ?? []), separator, ...rows.slice(1).map(line)].join('\n')
+}
+
 function serializeBlockSequence(blocks: BlockNode[], options: MarkdownSerializeOptions, indent: string): string {
   const parts: Array<{ text: string; list: boolean }> = []
   let ordinal = 0
   for (const block of blocks) {
-    if (block.type === 'listItem' || block.type === 'todo') {
+    if (block.type === 'table') {
+      ordinal = 0
+      parts.push({ text: serializeTable(block, options, indent), list: false })
+    } else if (block.type === 'tableRow' || block.type === 'tableCell') {
+      // Never serialized standalone; their table owns them.
+      continue
+    } else if (block.type === 'listItem' || block.type === 'todo') {
       ordinal = block.type === 'listItem' && block.attrs.kind === 'ordered' ? ordinal + 1 : 0
       const marker =
         block.type === 'todo'

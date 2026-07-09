@@ -43,6 +43,41 @@ import type { EditorState } from './state'
  * as keystrokes.
  */
 
+export interface CellContext {
+  tablePath: BlockPath
+  rowIndex: number
+  colIndex: number
+  cellPath: BlockPath
+}
+
+/** The enclosing table cell of `path`, or null when outside any table. */
+export function cellContext(docNode: DocNode, path: BlockPath): CellContext | null {
+  for (let i = 0; i < path.length; i++) {
+    const prefix = path.slice(0, i + 1)
+    const block = blockAt(docNode, prefix)
+    if (!block) return null
+    if (block.type === 'table') {
+      const rowIndex = path[i + 1]
+      const colIndex = path[i + 2]
+      if (rowIndex == null || colIndex == null) return null
+      return { tablePath: prefix, rowIndex, colIndex, cellPath: [...prefix, rowIndex, colIndex] }
+    }
+  }
+  return null
+}
+
+/**
+ * Structural edits must not cross a cell wall: both endpoints have to live in
+ * the same cell, or both entirely outside tables.
+ */
+function sameEditScope(docNode: DocNode, a: BlockPath, b: BlockPath): boolean {
+  const scopeA = cellContext(docNode, a)
+  const scopeB = cellContext(docNode, b)
+  if (!scopeA && !scopeB) return true
+  if (!scopeA || !scopeB) return false
+  return pathsEqual(scopeA.cellPath, scopeB.cellPath)
+}
+
 /** Copies a block, replacing its nested children (omitting the key when empty). */
 function withChildren<T extends BlockNode>(block: T, children: BlockNode[] | undefined): T {
   const next = { ...block }
@@ -122,6 +157,7 @@ export function insertTextInDoc(docNode: DocNode, pos: Position, content: string
 
 export function insertText(state: EditorState, content: string): EditorState {
   const { from, to } = orderedRange(state.doc, state.selection)
+  if (!sameEditScope(state.doc, from.path, to.path)) return state
   let docNode = state.doc
   if (comparePositions(from, to) !== 0) docNode = deleteRangeInDoc(docNode, from, to)
   const block = blockAt(docNode, from.path)
@@ -135,6 +171,7 @@ export function insertText(state: EditorState, content: string): EditorState {
 export function deleteBackward(state: EditorState): EditorState | null {
   const { from, to } = orderedRange(state.doc, state.selection)
   if (comparePositions(from, to) !== 0) {
+    if (!sameEditScope(state.doc, from.path, to.path)) return null
     return { doc: deleteRangeInDoc(state.doc, from, to), selection: collapsedSelection(from), storedMarks: null }
   }
   if (from.offset > 0) {
@@ -158,6 +195,8 @@ export function deleteBackward(state: EditorState): EditorState | null {
   }
   const prevPath = previousPath(state.doc, from.path)
   if (!prevPath) return null
+  // Never merge across a cell wall (also protects the block before a table).
+  if (!sameEditScope(state.doc, prevPath, from.path)) return null
   const prev = blockAt(state.doc, prevPath)
   if (!prev) return null
   const prevLen = blockLength(prev)
@@ -185,6 +224,7 @@ export function deleteBackward(state: EditorState): EditorState | null {
 export function deleteForward(state: EditorState): EditorState | null {
   const { from, to } = orderedRange(state.doc, state.selection)
   if (comparePositions(from, to) !== 0) {
+    if (!sameEditScope(state.doc, from.path, to.path)) return null
     return { doc: deleteRangeInDoc(state.doc, from, to), selection: collapsedSelection(from), storedMarks: null }
   }
   const block = blockAt(state.doc, from.path)
@@ -195,6 +235,7 @@ export function deleteForward(state: EditorState): EditorState | null {
   }
   const next = nextPath(state.doc, from.path)
   if (!next) return null
+  if (!sameEditScope(state.doc, from.path, next)) return null
   const start = { path: next, offset: 0 }
   return { doc: deleteRangeInDoc(state.doc, from, start), selection: collapsedSelection(from), storedMarks: null }
 }
@@ -208,10 +249,13 @@ export function deleteForward(state: EditorState): EditorState | null {
  */
 export function splitBlock(state: EditorState): EditorState {
   const { from, to } = orderedRange(state.doc, state.selection)
+  if (!sameEditScope(state.doc, from.path, to.path)) return state
   let docNode = state.doc
   if (comparePositions(from, to) !== 0) docNode = deleteRangeInDoc(docNode, from, to)
   const block = blockAt(docNode, from.path)
   if (!block || block.type === 'divider') return state
+  // Cells never split — the editor turns Enter into cell navigation instead.
+  if (block.type === 'tableCell' || block.type === 'tableRow' || block.type === 'table') return state
   const len = blockLength(block)
   if (len === 0 && comparePositions(from, to) === 0) {
     if (block.type === 'listItem') {
@@ -246,6 +290,7 @@ export function splitBlock(state: EditorState): EditorState {
 /** Inserts an empty paragraph after the caret's block and moves the caret into it (e.g. exiting a code block). */
 export function insertParagraphAfter(state: EditorState): EditorState {
   const { from } = orderedRange(state.doc, state.selection)
+  if (cellContext(state.doc, from.path)) return state
   const docNode = insertBlockAfter(state.doc, from.path, { type: 'paragraph', content: [] })
   return {
     doc: docNode,
@@ -359,7 +404,10 @@ function mapSelectedBlocks(state: EditorState, map: (block: BlockNode) => BlockN
     return blocks.map((block, i) => {
       const path = [...prefix, i]
       const children = block.children ? walk(block.children, path) : undefined
-      const inRange = comparePaths(path, from.path) >= 0 && comparePaths(path, to.path) <= 0
+      // Table structure is never converted to other block types.
+      const convertible = block.type !== 'table' && block.type !== 'tableRow' && block.type !== 'tableCell'
+      const inRange =
+        convertible && comparePaths(path, from.path) >= 0 && comparePaths(path, to.path) <= 0
       const base = children ? withChildren(block, children) : block
       return inRange ? withChildren(map(base), base.children) : base
     })
@@ -388,6 +436,19 @@ export function setParagraph(state: EditorState): EditorState {
 }
 
 export function setAlign(state: EditorState, align: Alignment): EditorState {
+  // Inside a table, alignment is a column property (GFM model).
+  const ctx = cellContext(state.doc, state.selection.head.path)
+  if (ctx) {
+    const docNode = replaceBlockAt(state.doc, ctx.tablePath, (tableBlock) => {
+      if (tableBlock.type !== 'table') return tableBlock
+      const cols = Math.max(ctx.colIndex + 1, tableBlock.attrs?.columnAligns?.length ?? 0)
+      const columnAligns = Array.from({ length: cols }, (_, i) =>
+        i === ctx.colIndex ? align : (tableBlock.attrs?.columnAligns?.[i] ?? 'left'),
+      )
+      return { ...tableBlock, attrs: { ...tableBlock.attrs, columnAligns } }
+    })
+    return { ...state, doc: docNode }
+  }
   const alignAttr = align !== 'left' ? { align } : {}
   return mapSelectedBlocks(state, (block) => {
     switch (block.type) {
@@ -403,7 +464,11 @@ export function setAlign(state: EditorState, align: Alignment): EditorState {
       }
       case 'divider':
       case 'codeBlock':
-        // Alignment doesn't apply to void/verbatim blocks.
+      case 'table':
+      case 'tableRow':
+      case 'tableCell':
+        // Void/verbatim/table-structure blocks: alignment doesn't apply here
+        // (cells are handled above via columnAligns; these never reach map anyway).
         return block
       case 'paragraph':
       case 'quote': {
@@ -479,6 +544,7 @@ export function setCodeBlock(state: EditorState, language?: string): EditorState
  */
 export function insertDivider(state: EditorState): EditorState {
   const { from } = orderedRange(state.doc, state.selection)
+  if (cellContext(state.doc, from.path)) return state
   const block = blockAt(state.doc, from.path)
   if (!block || block.type === 'divider') return state
   if (block.type === 'paragraph' && blockLength(block) === 0 && (block.children?.length ?? 0) === 0) {
@@ -580,6 +646,138 @@ export function outdentListItem(state: EditorState): EditorState | null {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Tables
+// ---------------------------------------------------------------------------
+
+function makeCell(): BlockNode {
+  return { type: 'tableCell', content: [] }
+}
+
+function tableRows(tableBlock: BlockNode): BlockNode[] {
+  return tableBlock.children ?? []
+}
+
+function columnCount(tableBlock: BlockNode): number {
+  return Math.max(1, ...tableRows(tableBlock).map((row) => row.children?.length ?? 0))
+}
+
+/**
+ * Inserts a rows×cols table (first row = header) after the caret's block —
+ * or in place of an empty paragraph — and puts the caret in the first cell.
+ */
+export function insertTable(state: EditorState, rows = 3, cols = 3): EditorState {
+  const { from } = orderedRange(state.doc, state.selection)
+  if (cellContext(state.doc, from.path)) return state
+  const block = blockAt(state.doc, from.path)
+  if (!block) return state
+  const newTable: BlockNode = {
+    type: 'table',
+    content: [],
+    children: Array.from({ length: rows }, () => ({
+      type: 'tableRow' as const,
+      content: [],
+      children: Array.from({ length: cols }, makeCell),
+    })),
+  }
+  if (block.type === 'paragraph' && blockLength(block) === 0 && (block.children?.length ?? 0) === 0) {
+    const docNode = replaceBlockAt(state.doc, from.path, () => newTable)
+    return { doc: docNode, selection: collapsedSelection({ path: [...from.path, 0, 0], offset: 0 }), storedMarks: null }
+  }
+  const docNode = insertBlockAfter(state.doc, from.path, newTable)
+  const tablePath = siblingAfter(from.path)
+  return { doc: docNode, selection: collapsedSelection({ path: [...tablePath, 0, 0], offset: 0 }), storedMarks: null }
+}
+
+/** Adds a row below the caret's row; the caret moves to the same column in it. */
+export function addTableRow(state: EditorState): EditorState | null {
+  const ctx = cellContext(state.doc, state.selection.head.path)
+  if (!ctx) return null
+  const tableBlock = blockAt(state.doc, ctx.tablePath)
+  if (!tableBlock) return null
+  const cols = columnCount(tableBlock)
+  const newRow: BlockNode = { type: 'tableRow', content: [], children: Array.from({ length: cols }, makeCell) }
+  const docNode = insertBlockAfter(state.doc, [...ctx.tablePath, ctx.rowIndex], newRow)
+  return {
+    doc: docNode,
+    selection: collapsedSelection({ path: [...ctx.tablePath, ctx.rowIndex + 1, ctx.colIndex], offset: 0 }),
+    storedMarks: null,
+  }
+}
+
+/** Adds a column to the right of the caret's column. */
+export function addTableColumn(state: EditorState): EditorState | null {
+  const ctx = cellContext(state.doc, state.selection.head.path)
+  if (!ctx) return null
+  const docNode = replaceBlockAt(state.doc, ctx.tablePath, (tableBlock) => {
+    if (tableBlock.type !== 'table') return tableBlock
+    const children = tableRows(tableBlock).map((row) => {
+      const cells = (row.children ?? []).slice()
+      cells.splice(ctx.colIndex + 1, 0, makeCell())
+      return { ...row, children: cells }
+    })
+    const aligns = tableBlock.attrs?.columnAligns
+    const attrs = aligns
+      ? { ...tableBlock.attrs, columnAligns: [...aligns.slice(0, ctx.colIndex + 1), 'left' as const, ...aligns.slice(ctx.colIndex + 1)] }
+      : tableBlock.attrs
+    return { ...tableBlock, ...(attrs ? { attrs } : {}), children }
+  })
+  return {
+    doc: docNode,
+    selection: collapsedSelection({ path: [...ctx.tablePath, ctx.rowIndex, ctx.colIndex + 1], offset: 0 }),
+    storedMarks: null,
+  }
+}
+
+/** Replaces the whole table with an empty paragraph. */
+export function deleteTable(state: EditorState): EditorState | null {
+  const ctx = cellContext(state.doc, state.selection.head.path)
+  if (!ctx) return null
+  const docNode = replaceBlockAt(state.doc, ctx.tablePath, () => ({ type: 'paragraph', content: [] }))
+  return { doc: docNode, selection: collapsedSelection({ path: ctx.tablePath, offset: 0 }), storedMarks: null }
+}
+
+/** Removes the caret's row (removing the last row deletes the table). */
+export function deleteTableRow(state: EditorState): EditorState | null {
+  const ctx = cellContext(state.doc, state.selection.head.path)
+  if (!ctx) return null
+  const tableBlock = blockAt(state.doc, ctx.tablePath)
+  if (!tableBlock) return null
+  if (tableRows(tableBlock).length <= 1) return deleteTable(state)
+  const docNode = removeBlockAt(state.doc, [...ctx.tablePath, ctx.rowIndex])
+  const rowIndex = Math.min(ctx.rowIndex, tableRows(tableBlock).length - 2)
+  return {
+    doc: docNode,
+    selection: collapsedSelection({ path: [...ctx.tablePath, rowIndex, ctx.colIndex], offset: 0 }),
+    storedMarks: null,
+  }
+}
+
+/** Removes the caret's column (removing the last column deletes the table). */
+export function deleteTableColumn(state: EditorState): EditorState | null {
+  const ctx = cellContext(state.doc, state.selection.head.path)
+  if (!ctx) return null
+  const tableBlock = blockAt(state.doc, ctx.tablePath)
+  if (!tableBlock) return null
+  if (columnCount(tableBlock) <= 1) return deleteTable(state)
+  const docNode = replaceBlockAt(state.doc, ctx.tablePath, (current) => {
+    if (current.type !== 'table') return current
+    const children = tableRows(current).map((row) => ({
+      ...row,
+      children: (row.children ?? []).filter((_, i) => i !== ctx.colIndex),
+    }))
+    const aligns = current.attrs?.columnAligns
+    const attrs = aligns ? { ...current.attrs, columnAligns: aligns.filter((_, i) => i !== ctx.colIndex) } : current.attrs
+    return { ...current, ...(attrs ? { attrs } : {}), children }
+  })
+  const colIndex = Math.max(0, Math.min(ctx.colIndex, columnCount(tableBlock) - 2))
+  return {
+    doc: docNode,
+    selection: collapsedSelection({ path: [...ctx.tablePath, ctx.rowIndex, colIndex], offset: 0 }),
+    storedMarks: null,
+  }
+}
+
 /** Moves the selection without touching the document. */
 export function setSelection(state: EditorState, selection: SelectionRange): EditorState {
   return {
@@ -595,6 +793,7 @@ export function setSelection(state: EditorState, selection: SelectionRange): Edi
 /** Deletes an explicit range and leaves the caret at its start. */
 export function deleteRange(state: EditorState, from: Position, to: Position): EditorState {
   const range = orderedRange(state.doc, { anchor: from, head: to })
+  if (!sameEditScope(state.doc, range.from.path, range.to.path)) return state
   return {
     doc: deleteRangeInDoc(state.doc, range.from, range.to),
     selection: collapsedSelection(range.from),

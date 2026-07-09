@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { callout, codeBlock, divider, doc, heading, listItem, paragraph, quote, text, todo } from '@custom-wysiwyg/core'
+import { callout, codeBlock, divider, doc, heading, listItem, paragraph, quote, table, tableCell, tableRow, text, todo } from '@custom-wysiwyg/core'
 import { serializeMarkdown } from '@custom-wysiwyg/export-markdown'
 
 describe('serializeMarkdown', () => {
@@ -137,5 +137,31 @@ describe('phase 2 blocks', () => {
   it('serializes dividers', () => {
     const out = serializeMarkdown(doc(paragraph([text('a')]), divider(), paragraph([text('b')])))
     expect(out).toBe('a\n\n---\n\nb')
+  })
+})
+
+describe('tables', () => {
+  const t = () =>
+    table(
+      [
+        tableRow([tableCell([text('Name')]), tableCell([text('Qty')])]),
+        tableRow([tableCell([text('Apples')]), tableCell([text('3')])]),
+        tableRow([tableCell([text('Pears | ok')]), tableCell([text('5')])]),
+      ],
+      { columnAligns: ['left', 'center'] },
+    )
+
+  it('serializes GFM tables with alignment markers and pipe escaping', () => {
+    const out = serializeMarkdown(doc(t()))
+    expect(out).toBe(
+      '| Name | Qty |\n| --- | :-: |\n| Apples | 3 |\n| Pears \\| ok | 5 |',
+    )
+  })
+
+  it('right alignment uses --:', () => {
+    const out = serializeMarkdown(
+      doc(table([tableRow([tableCell([text('x')])]), tableRow([tableCell([text('1')])])], { columnAligns: ['right'] })),
+    )
+    expect(out).toBe('| x |\n| --: |\n| 1 |')
   })
 })

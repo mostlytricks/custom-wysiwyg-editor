@@ -17,7 +17,7 @@ editing experience**, with a clean **agent-integration seam** so external agents
 
 | Domain | Status | One line |
 |---|---|---|
-| `core` | ✓ | engine (model/commands/view/input rules) — **Phase 2 block set complete** (tree, paths, lists, todos, quotes, code, dividers, callouts); next structural work is Phase 3 tables. `core/SPEC.md` |
+| `core` | ✓ | engine (model/commands/view/input rules) — **Phases 2–3 complete** (tree, paths, full block set incl. tables with GFM export); next structural work is Phase 4 block chrome. `core/SPEC.md` |
 | `formatting` | ◑ | text styling & alignment — bold/italic/code/link/align shipped; **color/highlight/fontSize marks + bubble palette shipped**; open: font family, block indent. `formatting/SPEC.md` |
 | `integration` | ○ | the agent-adapter seam — editor-side contract shipped; adapter + round-trip smoke not started. `integration/PLAN.md` |
 | ui | ✓ | framework-free widgets (BubbleMenu, SlashMenu) — no folder yet; mint when it grows rules |
@@ -55,9 +55,9 @@ Rules to respect while doing it: `core/SPEC.md`.
 
 ## Phase 3 — Tables
 
-- [ ] Table node (rows → cells → inline content)
-- [ ] Cell-aware selection; Tab/arrow navigation; add/remove row & column UI
-- [ ] Markdown export as GFM tables (column alignment via `:---:` — no HTML fallback needed)
+- [x] Table node (rows → cells → inline content) — ordinary tree nodes, so paths/marks/selection work unchanged; cell walls guard structural edits
+- [x] Cell-aware selection; Tab/Shift+Tab + Enter navigation (grow at the edge); add/remove row/column/table via commands (hover chrome deferred to Phase 4)
+- [x] Markdown export as GFM tables (first row = header, pipe escaping, `:-:`/`--:` column alignment via `setAlign` in a cell); HTML `thead/th` + `tbody/td`
 
 ## Phase 4 — Blocks as objects
 
