@@ -9,6 +9,9 @@
 Last touched: 2026-07-09
 
 ## Completed
+- **v0.2.1 cut** (patch: import + Phase 4 are features, no breaking — per the
+  pre-1.0 rule). Tag pending owner push, same as v0.2.0: from a local clone,
+  `git tag v0.2.1 <release-sha> && git push origin v0.2.1`.
 - **HTML & Markdown import shipped** (the compatibility-gap arc). `parseHTML`
   in core + rich paste via `insertBlocks` (inline splice vs split-and-insert,
   cell walls hold, plain-text fallback); new `@custom-wysiwyg/import-markdown`

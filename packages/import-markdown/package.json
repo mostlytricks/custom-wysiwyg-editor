@@ -1,6 +1,6 @@
 {
   "name": "@custom-wysiwyg/import-markdown",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Parse Markdown (the GFM subset the editor exports) into @custom-wysiwyg/core documents",
   "type": "module",
   "main": "./dist/index.cjs",

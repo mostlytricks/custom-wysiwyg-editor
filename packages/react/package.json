@@ -1,6 +1,6 @@
 {
   "name": "@custom-wysiwyg/react",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "React bindings for @custom-wysiwyg/core — SSR-safe, App Router ready",
   "type": "module",
   "main": "./dist/index.cjs",

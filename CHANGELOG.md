@@ -12,6 +12,8 @@ custom-wysiwyg-editor` from the workspace).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-09
+
 ### Added
 - **HTML & Markdown import.** `parseHTML(html)` in core — the inverse of the
   view/HTML exporter (headings, lists, todos, quotes, code, dividers, callouts,
