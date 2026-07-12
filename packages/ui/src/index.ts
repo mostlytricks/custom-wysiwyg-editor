@@ -1,4 +1,6 @@
 export { injectStyles } from './styles'
+export type { ClawdOptions } from './clawd'
+export { Clawd } from './clawd'
 export { BlockGutter } from './block-gutter'
 export { TableMenu } from './table-menu'
 export { clampToViewport, selectionRect } from './position'

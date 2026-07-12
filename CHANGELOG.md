@@ -13,6 +13,12 @@ custom-wysiwyg-editor` from the workspace).
 ## [Unreleased]
 
 ### Added
+- **Clawd** 🦀 — an opt-in corner buddy (`new Clawd(editor)` /
+  `<Clawd editor={…}>`): a little crab perched at the editor's top-right that
+  jazzes while you type (dance + floating notes) and winds down ~1.2s after
+  the last keystroke. Purely cosmetic: listens to editor events only,
+  `aria-hidden`, pointer-transparent, and fully still under
+  `prefers-reduced-motion`. Configurable `emoji` and `cooldown`.
 - **npm publish readiness** — MIT `LICENSE` (root + every package), per-package
   READMEs with verified usage snippets, `repository`/`homepage`/`bugs` +
   `publishConfig: { access: public }` in every manifest, and a tag-triggered

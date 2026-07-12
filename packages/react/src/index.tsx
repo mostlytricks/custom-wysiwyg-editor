@@ -14,9 +14,11 @@ import {
 import {
   BlockGutter as BlockGutterWidget,
   BubbleMenu as BubbleMenuWidget,
+  Clawd as ClawdWidget,
   SlashMenu as SlashMenuWidget,
   TableMenu as TableMenuWidget,
   type BubbleMenuOptions,
+  type ClawdOptions,
   type SlashMenuItem,
 } from '@custom-wysiwyg/ui'
 
@@ -144,5 +146,18 @@ export function TableMenu({ editor }: { editor: CoreEditor | null }) {
     const widget = new TableMenuWidget(editor)
     return () => widget.destroy()
   }, [editor])
+  return null
+}
+
+/** Clawd the corner crab — jazzes at the editor's top-right while you type. Purely cosmetic. */
+export function Clawd({ editor, emoji, cooldown }: { editor: CoreEditor | null } & ClawdOptions) {
+  useEffect(() => {
+    if (!editor) return
+    const widget = new ClawdWidget(editor, {
+      ...(emoji !== undefined ? { emoji } : {}),
+      ...(cooldown !== undefined ? { cooldown } : {}),
+    })
+    return () => widget.destroy()
+  }, [editor, emoji, cooldown])
   return null
 }

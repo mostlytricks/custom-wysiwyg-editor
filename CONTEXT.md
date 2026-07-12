@@ -19,9 +19,14 @@ Last touched: 2026-07-12
   (LICENSE + README + full dist each). Decision: lockstep + `/cut-release`
   retained, changesets not adopted — release procedure in `CLAUDE.md` updated
   (dep ranges now bump with the version). Docs site deferred.
+- **Clawd** 🦀 (owner-requested fun tweak): opt-in `packages/ui` widget — a
+  crab at the editor's top-right that jazzes on 'change' events and winds down
+  after a 1.2s cooldown. Cosmetic-only (aria-hidden, pointer-events none,
+  reduced-motion safe), React `<Clawd>` wrapper, demo wired. 196/196 unit
+  (5 new), 11-check `smoke-clawd` browser suite.
 - **Formatting track finished + v0.2.4 cut and merged** (PR #4): fontFamily
   mark, custom color pickers, block-indent won't-build decision, build-race
-  fix. 191/191 unit tests, 12 browser suites.
+  fix.
 
 ## Current State
 - **7-package monorepo, every planned arc shipped, npm-ready**: Phases 0-4,
