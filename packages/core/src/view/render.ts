@@ -1,5 +1,5 @@
 import type { BlockNode, TextSpan } from '../model/types'
-import { FONT_SIZES } from '../model/types'
+import { FONT_FAMILIES, FONT_SIZES } from '../model/types'
 import type { BlockPath } from '../model/path'
 import { getMark, hasMarkType } from '../model/spans'
 
@@ -30,11 +30,13 @@ export function renderSpan(documentRef: Document, span: TextSpan): Node {
   const color = getMark(span.marks, 'color')
   const highlight = getMark(span.marks, 'highlight')
   const fontSize = getMark(span.marks, 'fontSize')
-  if (color || highlight || fontSize) {
+  const fontFamily = getMark(span.marks, 'fontFamily')
+  if (color || highlight || fontSize || fontFamily) {
     const styled = documentRef.createElement('span')
     if (color) styled.style.color = color.attrs.value
     if (highlight) styled.style.backgroundColor = highlight.attrs.value
     if (fontSize) styled.style.fontSize = FONT_SIZES[fontSize.attrs.value]
+    if (fontFamily) styled.style.fontFamily = FONT_FAMILIES[fontFamily.attrs.value]
     styled.appendChild(node)
     node = styled
   }

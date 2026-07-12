@@ -1,5 +1,5 @@
 import type { BlockNode, DocNode, ListItemNode, TextSpan, TodoNode } from '@custom-wysiwyg/core'
-import { blockText, DEFAULT_CALLOUT_EMOJI, FONT_SIZES, getMark, hasMarkType } from '@custom-wysiwyg/core'
+import { blockText, DEFAULT_CALLOUT_EMOJI, FONT_FAMILIES, FONT_SIZES, getMark, hasMarkType } from '@custom-wysiwyg/core'
 
 /**
  * Serializes documents to clean semantic HTML. Works on the model only — no
@@ -25,6 +25,8 @@ export function spanStyle(span: TextSpan): string {
   if (highlight) declarations.push(`background-color: ${highlight.attrs.value}`)
   const fontSize = getMark(span.marks, 'fontSize')
   if (fontSize) declarations.push(`font-size: ${FONT_SIZES[fontSize.attrs.value]}`)
+  const fontFamily = getMark(span.marks, 'fontFamily')
+  if (fontFamily) declarations.push(`font-family: ${FONT_FAMILIES[fontFamily.attrs.value]}`)
   return declarations.join('; ')
 }
 

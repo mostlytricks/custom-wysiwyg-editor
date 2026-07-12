@@ -51,7 +51,26 @@ export interface FontSizeMark {
   attrs: { value: FontSizeToken }
 }
 
-export type Mark = BoldMark | ItalicMark | CodeMark | LinkMark | ColorMark | HighlightMark | FontSizeMark
+/**
+ * Font family as a token, like font size — rendering and export own the
+ * token→stack mapping. Default (no mark) inherits the host page's font.
+ */
+export type FontFamilyToken = 'serif' | 'mono'
+
+export interface FontFamilyMark {
+  type: 'fontFamily'
+  attrs: { value: FontFamilyToken }
+}
+
+export type Mark =
+  | BoldMark
+  | ItalicMark
+  | CodeMark
+  | LinkMark
+  | ColorMark
+  | HighlightMark
+  | FontSizeMark
+  | FontFamilyMark
 export type MarkType = Mark['type']
 
 /** The single place tokens become sizes (used by the view and the HTML exporter). */
@@ -59,6 +78,12 @@ export const FONT_SIZES: Record<FontSizeToken, string> = {
   small: '0.85em',
   large: '1.25em',
   huge: '1.5em',
+}
+
+/** The single place tokens become font stacks (used by the view and the HTML exporter). */
+export const FONT_FAMILIES: Record<FontFamilyToken, string> = {
+  serif: "Georgia, 'Times New Roman', serif",
+  mono: 'ui-monospace, SFMono-Regular, Menlo, monospace',
 }
 
 /** A run of text sharing the same set of marks. */

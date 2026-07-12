@@ -106,6 +106,15 @@ describe('styled text', () => {
     const out = serializeMarkdown(doc(paragraph([text('hot', [red, { type: 'bold' }])])), { styledText: 'plain' })
     expect(out).toBe('**hot**')
   })
+
+  it('font family follows the same fallback: span by default, dropped when plain', () => {
+    const mono = { type: 'fontFamily', attrs: { value: 'mono' } } as const
+    const styled = doc(paragraph([text('code-ish', [mono])]))
+    expect(serializeMarkdown(styled)).toBe(
+      '<span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace">code-ish</span>',
+    )
+    expect(serializeMarkdown(styled, { styledText: 'plain' })).toBe('code-ish')
+  })
 })
 
 describe('phase 2 blocks', () => {

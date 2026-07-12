@@ -12,6 +12,29 @@ custom-wysiwyg-editor` from the workspace).
 
 ## [Unreleased]
 
+### Added
+- **Font family mark** — new valued mark `fontFamily` with a token set
+  (`serif` / `mono`; default = mark absent), mapped to CSS stacks in one place
+  (`FONT_FAMILIES`). Renders in the editor, exports to HTML/Markdown span
+  styles, and the HTML importer maps font-family stacks back to tokens (exact
+  stack match, else keyword sniff). New `setFontFamily(value | null)` editor
+  command and a Font row (Aa / Serif / Mono) in the bubble palette with active
+  states.
+- **Custom color pickers** — native `<input type="color">` swatches at the end
+  of the Text and Mark palette rows, so any color/highlight can be applied, not
+  just the presets (the model always accepted arbitrary CSS colors). The bubble
+  focus-guard now also survives picker focus (same pattern as the link input).
+
+### Changed
+- **Formatting track complete** — generic block indent resolved as *won't
+  build*: nesting (Tab in lists, `children`, gutter drag) is the hierarchy
+  mechanism; decision recorded in `formatting/SPEC.md`.
+
+### Fixed
+- **Workspace build race** — `npm run build` now chains the package builds
+  strictly (`&&` in dependency order), so `agent-adapter`'s DTS step can no
+  longer start before `import-markdown` has emitted its declarations (TS2307).
+
 ## [0.2.3] - 2026-07-09
 
 ### Changed

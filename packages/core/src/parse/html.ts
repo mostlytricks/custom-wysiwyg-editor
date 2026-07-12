@@ -1,5 +1,5 @@
-import type { Alignment, BlockNode, FontSizeToken, ListKind, Mark, TextSpan } from '../model/types'
-import { FONT_SIZES } from '../model/types'
+import type { Alignment, BlockNode, FontFamilyToken, FontSizeToken, ListKind, Mark, TextSpan } from '../model/types'
+import { FONT_FAMILIES, FONT_SIZES } from '../model/types'
 import { normalizeSpans } from '../model/spans'
 
 /**
@@ -11,6 +11,18 @@ import { normalizeSpans } from '../model/spans'
 const SIZE_BY_CSS: Record<string, FontSizeToken> = Object.fromEntries(
   Object.entries(FONT_SIZES).map(([token, css]) => [css, token as FontSizeToken]),
 ) as Record<string, FontSizeToken>
+
+/** Best-effort font-family → token: exact stack match, else a keyword sniff. */
+function fontFamilyToken(value: string): FontFamilyToken | undefined {
+  const normalized = value.replace(/["']/g, "'").trim()
+  for (const [token, stack] of Object.entries(FONT_FAMILIES)) {
+    if (normalized === stack.replace(/["']/g, "'")) return token as FontFamilyToken
+  }
+  const lower = normalized.toLowerCase()
+  if (lower.includes('mono')) return 'mono'
+  if (lower.includes('serif') && !lower.includes('sans-serif')) return 'serif'
+  return undefined
+}
 
 function isElement(node: Node): node is HTMLElement {
   return node.nodeType === 1
@@ -41,6 +53,10 @@ function marksForElement(el: HTMLElement, marks: Mark[]): Mark[] {
     if (style.backgroundColor) next = pushMark(next, { type: 'highlight', attrs: { value: style.backgroundColor } })
     const size = SIZE_BY_CSS[style.fontSize]
     if (size) next = pushMark(next, { type: 'fontSize', attrs: { value: size } })
+    if (style.fontFamily) {
+      const family = fontFamilyToken(style.fontFamily)
+      if (family) next = pushMark(next, { type: 'fontFamily', attrs: { value: family } })
+    }
   }
   return next
 }

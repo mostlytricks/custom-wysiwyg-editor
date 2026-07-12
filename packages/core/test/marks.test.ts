@@ -29,6 +29,8 @@ const range = (from: number, to: number): SelectionRange => ({
 const red: Mark = { type: 'color', attrs: { value: '#e03e3e' } }
 const blue: Mark = { type: 'color', attrs: { value: '#0b6e99' } }
 const small: Mark = { type: 'fontSize', attrs: { value: 'small' } }
+const serif: Mark = { type: 'fontFamily', attrs: { value: 'serif' } }
+const mono: Mark = { type: 'fontFamily', attrs: { value: 'mono' } }
 const bold: Mark = { type: 'bold' }
 
 describe('valued marks (formatting SPEC)', () => {
@@ -45,6 +47,20 @@ describe('valued marks (formatting SPEC)', () => {
     const s = state(doc(paragraph([text('x', [red, bold, small])])), range(0, 1))
     const next = removeMark(s, 'color')
     expect(next.doc.children[0]!.content[0]!.marks).toEqual([bold, small])
+  })
+
+  it('applying a font family over an existing one replaces it, never toggles off', () => {
+    const s = state(doc(paragraph([text('type', [serif])])), range(0, 4))
+    const next = applyMark(s, mono)
+    expect(next.doc.children[0]!.content).toEqual([{ type: 'text', text: 'type', marks: [mono] }])
+    const again = applyMark(next, mono)
+    expect(again.doc.children[0]!.content[0]!.marks).toEqual([mono])
+  })
+
+  it('removeMark(fontFamily) restores the default font, keeping other marks', () => {
+    const s = state(doc(paragraph([text('x', [mono, bold])])), range(0, 1))
+    const next = removeMark(s, 'fontFamily')
+    expect(next.doc.children[0]!.content[0]!.marks).toEqual([bold])
   })
 
   it('collapsed selections stage valued marks in storedMarks', () => {
