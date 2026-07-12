@@ -12,6 +12,8 @@ custom-wysiwyg-editor` from the workspace).
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-07-12
+
 ### Added
 - **Clawd** 🐉 — an opt-in corner buddy (`new Clawd(editor)` /
   `<Clawd editor={…}>`): a little **red** dragon (the stock emoji is

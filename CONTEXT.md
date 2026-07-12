@@ -34,8 +34,10 @@ Last touched: 2026-07-12
 - **Owner-side to actually publish**: (1) create the npm org `custom-wysiwyg`
   (scope unclaimed as of 2026-07), (2) add the `NPM_TOKEN` repo secret,
   (3) push the tags — v0.2.0 → 5bbf7dc, v0.2.1 → 555cbaf, v0.2.2 → `release:
-  v0.2.2` commit, v0.2.3 → 9736d8b, v0.2.4 → 25adf76 (session proxy rejects
-  tag pushes; a fresh tag push will trigger publish.yml once secrets exist).
+  v0.2.2` commit, v0.2.3 → 9736d8b, v0.2.4 → 25adf76, v0.2.5 → `release:
+  v0.2.5` commit (session proxy rejects tag pushes; a fresh tag push will
+  trigger publish.yml once secrets exist). v0.2.5 = Clawd 🐉 + publish
+  readiness; lockstep now includes the `^X.Y.Z` dep ranges.
 - Table v1 walls documented in `core/SPEC.md` Gotchas.
 
 ## Next Step
