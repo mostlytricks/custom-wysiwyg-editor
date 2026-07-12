@@ -12,6 +12,18 @@ custom-wysiwyg-editor` from the workspace).
 
 ## [Unreleased]
 
+### Added
+- **npm publish readiness** — MIT `LICENSE` (root + every package), per-package
+  READMEs with verified usage snippets, `repository`/`homepage`/`bugs` +
+  `publishConfig: { access: public }` in every manifest, and a tag-triggered
+  `publish.yml` workflow (gate → `npm publish --workspaces --provenance`;
+  needs the `NPM_TOKEN` secret and the `custom-wysiwyg` npm org).
+
+### Fixed
+- **Inter-package dependency ranges** — `@custom-wysiwyg/*` deps were `"*"`,
+  which npm publishes literally (consumers would accept any version); now real
+  lockstep ranges (`^0.2.4`) that bump with each release.
+
 ## [0.2.4] - 2026-07-12
 
 ### Added

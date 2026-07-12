@@ -79,7 +79,8 @@ Rules to respect while doing it: `core/SPEC.md`.
 
 - [x] HTML & Markdown **import**: `parseHTML` in core (inverse of the view; powers rich paste — clipboard HTML becomes real blocks, plain text stays the fallback) + `@custom-wysiwyg/import-markdown` (`parseMarkdown`, the exported GFM subset; inline HTML degrades to plain text). `insertBlocks` command splices pastes (inline for single paragraphs, split-and-insert otherwise; cell walls hold). Round-trip tested both ways
 - [x] **Agent adapter** (`integration/PLAN.md`) — pipe proven + `@custom-wysiwyg/agent-adapter` + scripted demo session (first live LLM pass stays open there)
-- [ ] Publishing setup: npm scope, versioning (changesets), docs site
+- [x] Publishing setup: all 7 packages publish-ready (real `^X.Y.Z` inter-package ranges — npm publishes `*` literally; `repository`/`publishConfig: public`; MIT LICENSE + per-package READMEs; tarballs verified via `npm pack --dry-run`), tag-triggered `publish.yml` workflow with provenance. Versioning decision: lockstep + `/cut-release` retained, changesets not adopted. Owner-side once: create the npm org `custom-wysiwyg` (unclaimed as of 2026-07) + add `NPM_TOKEN` secret
+- [ ] Docs site (deferred — per-package READMEs + the root README cover usage for now)
 - [x] Undo of input rules restores literal syntax (autoformat commits the literal
       text as its own undo step); inline link editor (in-bubble URL input with
       set/edit/remove, replacing `window.prompt`)

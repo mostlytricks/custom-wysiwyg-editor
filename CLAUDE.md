@@ -77,10 +77,16 @@ way: stale selection on Ctrl+B right after Shift+Home.
 ## Releasing
 
 Version source of truth: the git tag `vX.Y.Z` + the root `package.json` `version`
-(all workspace packages bump in lockstep). Changes accumulate in
-`CHANGELOG.md` `[Unreleased]`. To cut: run `/cut-release custom-wysiwyg-editor`
-from the workspace — it proposes the bump from the `[Unreleased]` evidence
-(pre-1.0: breaking → minor, feature/fix → patch), runs the gate
-(`npm run typecheck && npm test`; refuses to tag red code), renames the changelog
-section with the real date, bumps the manifests, commits `release: vX.Y.Z`, tags,
-and **stops before push** — the push is yours.
+(all workspace packages bump in lockstep — **including the `@custom-wysiwyg/*`
+dependency ranges** (`^X.Y.Z`), which are real ranges because npm publishes them
+literally; changesets was considered and not adopted — lockstep + this procedure
+covers it). Changes accumulate in `CHANGELOG.md` `[Unreleased]`. To cut: run
+`/cut-release custom-wysiwyg-editor` from the workspace — it proposes the bump
+from the `[Unreleased]` evidence (pre-1.0: breaking → minor, feature/fix →
+patch), runs the gate (`npm run typecheck && npm test`; refuses to tag red
+code), renames the changelog section with the real date, bumps the manifests,
+commits `release: vX.Y.Z`, tags, and **stops before push** — the push is yours.
+Pushing the tag triggers `.github/workflows/publish.yml`, which re-runs the
+gate and publishes every package to npm with provenance (needs the `NPM_TOKEN`
+repo secret; npm scope `custom-wysiwyg` was unclaimed as of 2026-07 — create
+the org before the first publish).

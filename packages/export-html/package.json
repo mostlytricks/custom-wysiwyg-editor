@@ -2,6 +2,20 @@
   "name": "@custom-wysiwyg/export-html",
   "version": "0.2.4",
   "description": "Serialize @custom-wysiwyg/core documents to clean, deterministic HTML",
+  "keywords": [
+    "wysiwyg",
+    "editor",
+    "html",
+    "serializer"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mostlytricks/custom-wysiwyg-editor.git",
+    "directory": "packages/export-html"
+  },
+  "homepage": "https://github.com/mostlytricks/custom-wysiwyg-editor/tree/main/packages/export-html#readme",
+  "bugs": "https://github.com/mostlytricks/custom-wysiwyg-editor/issues",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -17,12 +31,14 @@
     "dist"
   ],
   "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@custom-wysiwyg/core": "*"
-  },
-  "license": "MIT"
+    "@custom-wysiwyg/core": "^0.2.4"
+  }
 }
