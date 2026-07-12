@@ -15,11 +15,22 @@ describe('Clawd', () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => vi.useRealTimers())
 
-  it('mounts a decorative, pointer-transparent buddy', () => {
+  it('mounts a decorative, pointer-transparent buddy in dragon red', () => {
     const { clawd } = setup()
     expect(clawd.dom.getAttribute('aria-hidden')).toBe('true')
-    expect(clawd.dom.querySelector('.cwe-clawd-buddy')!.textContent).toBe('🐉')
+    const buddy = clawd.dom.querySelector<HTMLElement>('.cwe-clawd-buddy')!
+    expect(buddy.textContent).toBe('🐉')
+    expect(buddy.style.filter).toContain('hue-rotate')
     expect(clawd.jazzing).toBe(false)
+  })
+
+  it('leaves custom emoji untinted unless a tint is passed', () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const editor = new Editor(host, { doc: doc(paragraph([text('hi')])) })
+    const crab = new Clawd(editor, { emoji: '🦀' })
+    expect(crab.dom.querySelector<HTMLElement>('.cwe-clawd-buddy')!.style.filter).toBe('')
+    crab.destroy()
   })
 
   it('jazzes on document changes and winds down after the cooldown', () => {

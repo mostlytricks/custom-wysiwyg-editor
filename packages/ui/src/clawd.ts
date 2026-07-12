@@ -2,13 +2,21 @@ import type { Editor } from '@custom-wysiwyg/core'
 import { injectStyles } from './styles'
 
 export interface ClawdOptions {
-  /** The performer. Default 🐉 (try '🦀' for the classic). */
+  /** The performer. Default 🐉, shown in dragon red (custom emoji render untinted). */
   emoji?: string
+  /**
+   * CSS filter for the performer, e.g. 'hue-rotate(120deg)'. Defaults to the
+   * red tint for the stock dragon and none for a custom emoji; pass '' to get
+   * the dragon in its natural green.
+   */
+  tint?: string
   /** Quiet time (ms) before the jazz winds down. Default 1200. */
   cooldown?: number
 }
 
 const NOTES = ['♪', '♫', '♬', '🎷', '🎶']
+/** Emoji dragons ship green; this shifts the stock one to Clawd red. */
+const RED_DRAGON = 'hue-rotate(240deg) saturate(1.6)'
 
 /**
  * Clawd, the corner dragon: hangs out at the editor's top-right corner and
@@ -42,6 +50,8 @@ export class Clawd {
     this.buddy = documentRef.createElement('span')
     this.buddy.className = 'cwe-clawd-buddy'
     this.buddy.textContent = options.emoji ?? '🐉'
+    const tint = options.tint ?? (options.emoji === undefined ? RED_DRAGON : '')
+    if (tint) this.buddy.style.filter = tint
     this.dom.appendChild(this.buddy)
     documentRef.body.appendChild(this.dom)
 
