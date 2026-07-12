@@ -2,6 +2,20 @@
   "name": "@custom-wysiwyg/core",
   "version": "0.2.4",
   "description": "Framework-agnostic WYSIWYG editor core: JSON document model, transactions, and a contenteditable view",
+  "keywords": [
+    "wysiwyg",
+    "editor",
+    "contenteditable",
+    "rich-text"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mostlytricks/custom-wysiwyg-editor.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/mostlytricks/custom-wysiwyg-editor/tree/main/packages/core#readme",
+  "bugs": "https://github.com/mostlytricks/custom-wysiwyg-editor/issues",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -17,15 +31,11 @@
     "dist"
   ],
   "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit"
-  },
-  "keywords": [
-    "wysiwyg",
-    "editor",
-    "contenteditable",
-    "rich-text"
-  ],
-  "license": "MIT"
+  }
 }

@@ -9,36 +9,31 @@
 Last touched: 2026-07-12
 
 ## Completed
-- **Formatting track finished — spine domain flipped to ✓.** (1) *Font family
-  mark*: valued mark `fontFamily` (`serif`/`mono` tokens via `FONT_FAMILIES`),
-  render + both exporters + HTML-importer reverse map (exact stack, else keyword
-  sniff), `setFontFamily` command, Font row in the bubble palette with active
-  states. (2) *Custom color pickers*: native `<input type="color">` in the Text
-  and Mark palette rows; the bubble focus-guard gained a `pickerOpen` flag
-  (armed on picker mousedown, before the editor blur) so the bubble survives
-  picker focus. (3) *Block indent decision*: won't build — nesting is the
-  mechanism; recorded in `formatting/SPEC.md` Resolved. Gate green: 191/191
-  unit (5 new), 16-check `smoke-format2` browser suite + all 11 regression
-  suites pass.
-- **Build race fixed**: root `build` script now chains the workspace builds
-  strictly in dependency order (`&&`), killing the flaky TS2307 DTS race.
-- v0.2.3 cut previously; tags v0.2.0 → 5bbf7dc, v0.2.1 → 555cbaf,
-  v0.2.2 → `release: v0.2.2` commit, v0.2.3 → 9736d8b still pending owner push
-  (session proxy rejects tag pushes).
+- **Publishing setup (last Ongoing item).** All 7 packages publish-ready:
+  inter-package deps fixed from `"*"` (published literally by npm — any-version
+  hazard) to lockstep `^0.2.4` ranges; `repository`/`homepage`/`bugs` +
+  `publishConfig: { access: public }` everywhere; MIT `LICENSE` at root and in
+  each package; per-package READMEs (snippets verified against the real APIs);
+  tag-triggered `.github/workflows/publish.yml` (gate → `npm publish
+  --workspaces --provenance`). Tarballs verified with `npm pack --dry-run`
+  (LICENSE + README + full dist each). Decision: lockstep + `/cut-release`
+  retained, changesets not adopted — release procedure in `CLAUDE.md` updated
+  (dep ranges now bump with the version). Docs site deferred.
+- **Formatting track finished + v0.2.4 cut and merged** (PR #4): fontFamily
+  mark, custom color pickers, block-indent won't-build decision, build-race
+  fix. 191/191 unit tests, 12 browser suites.
 
 ## Current State
-- **7-package monorepo, every planned arc shipped and every spine domain ✓**:
-  Phases 0-4 (full block set through tables, block chrome, Esc selection), the
-  complete formatting track (boolean marks, link, align, color/highlight/
-  fontSize/fontFamily, custom colors), HTML/Markdown import + rich paste, and
-  the agent adapter — all exporting to Markdown (GFM) + HTML, 191 unit tests.
-- Table v1 walls (no merges, inline-only cells, select-all stops at tables) are
-  documented in `core/SPEC.md` Gotchas.
-- Unreleased changes accumulating in `CHANGELOG.md` (font family, custom
-  colors, build-race fix) — a patch cut is ready whenever wanted.
+- **7-package monorepo, every planned arc shipped, npm-ready**: Phases 0-4,
+  complete formatting track, HTML/Markdown import + rich paste, agent adapter.
+- **Owner-side to actually publish**: (1) create the npm org `custom-wysiwyg`
+  (scope unclaimed as of 2026-07), (2) add the `NPM_TOKEN` repo secret,
+  (3) push the tags — v0.2.0 → 5bbf7dc, v0.2.1 → 555cbaf, v0.2.2 → `release:
+  v0.2.2` commit, v0.2.3 → 9736d8b, v0.2.4 → 25adf76 (session proxy rejects
+  tag pushes; a fresh tag push will trigger publish.yml once secrets exist).
+- Table v1 walls documented in `core/SPEC.md` Gotchas.
 
 ## Next Step
 - **First live agent pass** (owner's call per `integration/PLAN.md`: Claude via
-  MCP or a local API script — the adapter is agent-agnostic). Otherwise:
-  publishing setup (npm scope, changesets, docs site) is the last open backlog
-  item. Tags v0.2.0–v0.2.3 still pending owner push.
+  MCP or a local API script — the adapter is agent-agnostic). Remaining backlog
+  after that: docs site (deferred).
