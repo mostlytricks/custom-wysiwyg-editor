@@ -2,7 +2,7 @@ import type { Editor } from '@custom-wysiwyg/core'
 import { injectStyles } from './styles'
 
 export interface ClawdOptions {
-  /** The performer. Default 🦀. */
+  /** The performer. Default 🐉 (try '🦀' for the classic). */
   emoji?: string
   /** Quiet time (ms) before the jazz winds down. Default 1200. */
   cooldown?: number
@@ -11,7 +11,7 @@ export interface ClawdOptions {
 const NOTES = ['♪', '♫', '♬', '🎷', '🎶']
 
 /**
- * Clawd, the corner crab: hangs out at the editor's top-right corner and
+ * Clawd, the corner dragon: hangs out at the editor's top-right corner and
  * jazzes while you type. Purely cosmetic — listens to editor events only,
  * never reads or touches the document. `aria-hidden` and pointer-transparent,
  * so it's invisible to assistive tech and can't steal a click; all motion is
@@ -41,7 +41,7 @@ export class Clawd {
 
     this.buddy = documentRef.createElement('span')
     this.buddy.className = 'cwe-clawd-buddy'
-    this.buddy.textContent = options.emoji ?? '🦀'
+    this.buddy.textContent = options.emoji ?? '🐉'
     this.dom.appendChild(this.buddy)
     documentRef.body.appendChild(this.dom)
 

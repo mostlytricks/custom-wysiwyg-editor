@@ -19,8 +19,8 @@ Last touched: 2026-07-12
   (LICENSE + README + full dist each). Decision: lockstep + `/cut-release`
   retained, changesets not adopted — release procedure in `CLAUDE.md` updated
   (dep ranges now bump with the version). Docs site deferred.
-- **Clawd** 🦀 (owner-requested fun tweak): opt-in `packages/ui` widget — a
-  crab at the editor's top-right that jazzes on 'change' events and winds down
+- **Clawd** 🐉 (owner-requested fun tweak): opt-in `packages/ui` widget — a
+  dragon at the editor's top-right that jazzes on 'change' events and winds down
   after a 1.2s cooldown. Cosmetic-only (aria-hidden, pointer-events none,
   reduced-motion safe), React `<Clawd>` wrapper, demo wired. 196/196 unit
   (5 new), 11-check `smoke-clawd` browser suite.

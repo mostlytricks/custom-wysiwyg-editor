@@ -18,7 +18,7 @@ describe('Clawd', () => {
   it('mounts a decorative, pointer-transparent buddy', () => {
     const { clawd } = setup()
     expect(clawd.dom.getAttribute('aria-hidden')).toBe('true')
-    expect(clawd.dom.querySelector('.cwe-clawd-buddy')!.textContent).toBe('🦀')
+    expect(clawd.dom.querySelector('.cwe-clawd-buddy')!.textContent).toBe('🐉')
     expect(clawd.jazzing).toBe(false)
   })
 
