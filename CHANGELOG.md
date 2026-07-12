@@ -12,6 +12,8 @@ custom-wysiwyg-editor` from the workspace).
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-07-12
+
 ### Added
 - **Font family mark** — new valued mark `fontFamily` with a token set
   (`serif` / `mono`; default = mark absent), mapped to CSS stacks in one place
