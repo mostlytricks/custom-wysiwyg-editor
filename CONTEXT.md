@@ -19,9 +19,14 @@ Last touched: 2026-07-12
   (LICENSE + README + full dist each). Decision: lockstep + `/cut-release`
   retained, changesets not adopted — release procedure in `CLAUDE.md` updated
   (dep ranges now bump with the version). Docs site deferred.
+- **Clawd** 🐉 (owner-requested fun tweak): opt-in `packages/ui` widget — a
+  dragon at the editor's top-right that jazzes on 'change' events and winds down
+  after a 1.2s cooldown. Cosmetic-only (aria-hidden, pointer-events none,
+  reduced-motion safe), React `<Clawd>` wrapper, demo wired. 196/196 unit
+  (5 new), 11-check `smoke-clawd` browser suite.
 - **Formatting track finished + v0.2.4 cut and merged** (PR #4): fontFamily
   mark, custom color pickers, block-indent won't-build decision, build-race
-  fix. 191/191 unit tests, 12 browser suites.
+  fix.
 
 ## Current State
 - **7-package monorepo, every planned arc shipped, npm-ready**: Phases 0-4,
@@ -29,8 +34,10 @@ Last touched: 2026-07-12
 - **Owner-side to actually publish**: (1) create the npm org `custom-wysiwyg`
   (scope unclaimed as of 2026-07), (2) add the `NPM_TOKEN` repo secret,
   (3) push the tags — v0.2.0 → 5bbf7dc, v0.2.1 → 555cbaf, v0.2.2 → `release:
-  v0.2.2` commit, v0.2.3 → 9736d8b, v0.2.4 → 25adf76 (session proxy rejects
-  tag pushes; a fresh tag push will trigger publish.yml once secrets exist).
+  v0.2.2` commit, v0.2.3 → 9736d8b, v0.2.4 → 25adf76, v0.2.5 → `release:
+  v0.2.5` commit (session proxy rejects tag pushes; a fresh tag push will
+  trigger publish.yml once secrets exist). v0.2.5 = Clawd 🐉 + publish
+  readiness; lockstep now includes the `^X.Y.Z` dep ranges.
 - Table v1 walls documented in `core/SPEC.md` Gotchas.
 
 ## Next Step

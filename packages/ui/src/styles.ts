@@ -167,6 +167,52 @@ const CSS = `
     color: rgba(212, 212, 212, 0.9);
   }
 }
+.cwe-clawd {
+  position: fixed;
+  z-index: 9997;
+  pointer-events: none;
+  user-select: none;
+  font-size: 22px;
+  line-height: 1;
+}
+.cwe-clawd-buddy {
+  display: inline-block;
+  transform-origin: 50% 85%;
+  animation: cwe-clawd-bob 3.2s ease-in-out infinite;
+}
+.cwe-clawd.cwe-jazzing .cwe-clawd-buddy {
+  animation: cwe-clawd-jazz 0.34s ease-in-out infinite;
+}
+.cwe-clawd-note {
+  position: absolute;
+  bottom: 70%;
+  font-size: 13px;
+  color: #d9730d;
+  animation: cwe-clawd-note 0.9s ease-out forwards;
+}
+@keyframes cwe-clawd-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+@keyframes cwe-clawd-jazz {
+  0%, 100% { transform: translateY(0) rotate(-12deg) scale(1); }
+  25% { transform: translateY(-5px) rotate(9deg) scale(1.12); }
+  50% { transform: translateY(-1px) rotate(-7deg) scale(1.04); }
+  75% { transform: translateY(-6px) rotate(13deg) scale(1.16); }
+}
+@keyframes cwe-clawd-note {
+  from { opacity: 0.9; transform: translateY(0) rotate(0deg); }
+  to { opacity: 0; transform: translateY(-26px) rotate(24deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cwe-clawd-buddy,
+  .cwe-clawd.cwe-jazzing .cwe-clawd-buddy {
+    animation: none;
+  }
+  .cwe-clawd-note {
+    display: none;
+  }
+}
 .cwe-bubble, .cwe-slash {
   position: fixed;
   z-index: 9999;

@@ -94,7 +94,7 @@
     <script src="../../packages/agent-adapter/dist/index.global.js"></script>
     <script>
       const { Editor, doc: d, paragraph, heading, text } = CustomWysiwyg
-      const { BubbleMenu, SlashMenu, BlockGutter, TableMenu } = CustomWysiwygUI
+      const { BubbleMenu, SlashMenu, BlockGutter, TableMenu, Clawd } = CustomWysiwygUI
       const { serializeMarkdown } = CustomWysiwygMarkdown
       const { serializeHTML } = CustomWysiwygHTML
 
@@ -127,6 +127,7 @@
       new SlashMenu(editor)
       new BlockGutter(editor)
       new TableMenu(editor)
+      new Clawd(editor) // 🐉 jazzes top-right while you type
 
       // Scripted agent session: reads context, streams markdown back in
       // block-sized undoable transactions — the full adapter round trip.

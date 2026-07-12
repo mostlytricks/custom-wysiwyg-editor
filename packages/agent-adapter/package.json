@@ -1,6 +1,6 @@
 {
   "name": "@custom-wysiwyg/agent-adapter",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "The agent seam for @custom-wysiwyg/core: markdown context out, undoable markdown/block edits in, block-buffered streaming",
   "keywords": [
     "wysiwyg",
@@ -40,8 +40,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@custom-wysiwyg/core": "^0.2.4",
-    "@custom-wysiwyg/export-markdown": "^0.2.4",
-    "@custom-wysiwyg/import-markdown": "^0.2.4"
+    "@custom-wysiwyg/core": "^0.2.5",
+    "@custom-wysiwyg/export-markdown": "^0.2.5",
+    "@custom-wysiwyg/import-markdown": "^0.2.5"
   }
 }
