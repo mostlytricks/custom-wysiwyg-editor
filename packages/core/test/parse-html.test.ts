@@ -25,6 +25,20 @@ describe('parseHTML', () => {
     ])
   })
 
+  it('maps font-family stacks back to tokens (exact stack or keyword sniff)', () => {
+    const blocks = parseHTML(
+      '<p><span style="font-family: Georgia, \'Times New Roman\', serif">a</span>' +
+        '<span style="font-family: Consolas, monospace">b</span>' +
+        '<span style="font-family: Helvetica, sans-serif">c</span></p>',
+    )
+    expect(blocks[0]!.content).toEqual([
+      { type: 'text', text: 'a', marks: [{ type: 'fontFamily', attrs: { value: 'serif' } }] },
+      { type: 'text', text: 'b', marks: [{ type: 'fontFamily', attrs: { value: 'mono' } }] },
+      // sans-serif is the default look, not our serif token.
+      { type: 'text', text: 'c', marks: [] },
+    ])
+  })
+
   it('parses nested lists and todos', () => {
     const blocks = parseHTML(
       '<ul><li>parent<ul><li>kid</li></ul></li></ul><ul class="cwe-todos"><li><input type="checkbox" checked> done</li></ul>',

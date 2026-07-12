@@ -1,5 +1,5 @@
-import type { Editor, FontSizeToken, HeadingLevel, SelectionRange } from '@custom-wysiwyg/core'
-import { blockAt, getMark, marksAtOffset, selectionIsCollapsed } from '@custom-wysiwyg/core'
+import type { Editor, FontFamilyToken, FontSizeToken, HeadingLevel, SelectionRange } from '@custom-wysiwyg/core'
+import { blockAt, FONT_FAMILIES, getMark, marksAtOffset, selectionIsCollapsed } from '@custom-wysiwyg/core'
 import { clampToViewport, selectionRect } from './position'
 import { injectStyles } from './styles'
 
@@ -106,6 +106,11 @@ const FONT_SIZE_OPTIONS: Array<{ label: string; value: FontSizeToken | null }> =
   { label: 'L', value: 'large' },
   { label: 'XL', value: 'huge' },
 ]
+const FONT_FAMILY_OPTIONS: Array<{ label: string; value: FontFamilyToken | null }> = [
+  { label: 'Aa', value: null },
+  { label: 'Serif', value: 'serif' },
+  { label: 'Mono', value: 'mono' },
+]
 
 /**
  * Floating toolbar that appears above a non-collapsed selection, Notion
@@ -128,6 +133,8 @@ export class BubbleMenu {
   private linkOpen = false
   /** Selection captured when the link editor opened; focusing the input clears the live one. */
   private linkSelection: SelectionRange | null = null
+  /** True while a custom color picker owns focus — the editor blur must not hide the bubble then. */
+  private pickerOpen = false
 
   constructor(editor: Editor, options: BubbleMenuOptions = {}) {
     this.editor = editor
@@ -187,9 +194,10 @@ export class BubbleMenu {
 
     this.unsubscribers = [
       editor.on('update', () => this.update()),
-      // Focusing the link input blurs the editor; keep the bubble alive then.
+      // Focusing the link input or a color picker blurs the editor; keep the
+      // bubble alive then.
       editor.on('blur', () => {
-        if (!this.linkOpen) this.hide()
+        if (!this.linkOpen && !this.pickerOpen) this.hide()
       }),
     ]
     this.win.addEventListener('scroll', this.onWindowMove, true)
@@ -320,6 +328,31 @@ export class BubbleMenu {
       return rowEl
     }
 
+    // A native color input needs real focus/click, so it opts out of the
+    // bubble's focus-guard like the link input does. Its mousedown fires
+    // before the editor blur, so the pickerOpen flag is armed in time to keep
+    // the bubble visible; the model selection survives the blur, and
+    // committing re-applies and refocuses.
+    const addCustomColor = (rowEl: HTMLElement, title: string, apply: (value: string) => void): void => {
+      const picker = documentRef.createElement('input')
+      picker.type = 'color'
+      picker.className = 'cwe-swatch cwe-swatch-custom'
+      picker.title = title
+      picker.addEventListener('mousedown', (e) => {
+        e.stopPropagation()
+        this.pickerOpen = true
+      })
+      picker.addEventListener('blur', () => {
+        this.pickerOpen = false
+      })
+      picker.addEventListener('change', () => {
+        apply(picker.value)
+        this.editor.focus()
+        this.update()
+      })
+      rowEl.appendChild(picker)
+    }
+
     const colorRow = addRow('Text')
     for (const value of TEXT_COLORS) {
       const swatch = documentRef.createElement('button')
@@ -334,6 +367,7 @@ export class BubbleMenu {
       })
       colorRow.appendChild(swatch)
     }
+    addCustomColor(colorRow, 'Custom text color', (value) => this.editor.commands.setColor(value))
 
     const highlightRow = addRow('Mark')
     for (const value of HIGHLIGHT_COLORS) {
@@ -349,6 +383,7 @@ export class BubbleMenu {
       })
       highlightRow.appendChild(swatch)
     }
+    addCustomColor(highlightRow, 'Custom highlight', (value) => this.editor.commands.setHighlight(value))
 
     const sizeRow = addRow('Size')
     for (const option of FONT_SIZE_OPTIONS) {
@@ -365,6 +400,22 @@ export class BubbleMenu {
       sizeRow.appendChild(btn)
     }
 
+    const fontRow = addRow('Font')
+    for (const option of FONT_FAMILY_OPTIONS) {
+      const btn = documentRef.createElement('button')
+      btn.type = 'button'
+      btn.className = 'cwe-size cwe-font'
+      btn.textContent = option.label
+      btn.title = option.value ? `Font: ${option.value}` : 'Default font'
+      btn.dataset.family = option.value ?? 'default'
+      if (option.value) btn.style.fontFamily = FONT_FAMILIES[option.value]
+      btn.addEventListener('click', () => {
+        this.editor.commands.setFontFamily(option.value)
+        this.update()
+      })
+      fontRow.appendChild(btn)
+    }
+
     return palette
   }
 
@@ -372,13 +423,15 @@ export class BubbleMenu {
     this.palette.style.display = this.paletteOpen ? 'grid' : 'none'
     this.paletteToggle.classList.toggle('cwe-active', this.paletteOpen)
     if (!this.paletteOpen) return
-    // Reflect the active font size on the size buttons.
+    // Reflect the active font size and family on their buttons.
     const state = this.editor.getState()
     const block = blockAt(state.doc, state.selection.head.path)
     const spanMarks = state.storedMarks ?? (block ? marksAtOffset(block, state.selection.head.offset) : [])
-    const active = getMark(spanMarks, 'fontSize')?.attrs.value ?? 'default'
+    const activeSize = getMark(spanMarks, 'fontSize')?.attrs.value ?? 'default'
+    const activeFamily = getMark(spanMarks, 'fontFamily')?.attrs.value ?? 'default'
     for (const btn of this.palette.querySelectorAll<HTMLButtonElement>('.cwe-size')) {
-      btn.classList.toggle('cwe-active', btn.dataset.size === active)
+      if (btn.dataset.size) btn.classList.toggle('cwe-active', btn.dataset.size === activeSize)
+      if (btn.dataset.family) btn.classList.toggle('cwe-active', btn.dataset.family === activeFamily)
     }
   }
 

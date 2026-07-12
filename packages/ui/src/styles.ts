@@ -246,6 +246,22 @@ const CSS = `
   font-size: 11px;
   line-height: 1;
 }
+.cwe-bubble input.cwe-swatch-custom {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px dashed rgba(55, 53, 47, 0.35);
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+.cwe-bubble input.cwe-swatch-custom::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+.cwe-bubble input.cwe-swatch-custom::-webkit-color-swatch {
+  border: none;
+  border-radius: 2px;
+}
 .cwe-bubble button.cwe-size {
   font-size: 11px;
   padding: 3px 7px;

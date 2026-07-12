@@ -18,7 +18,7 @@ editing experience**, with a clean **agent-integration seam** so external agents
 | Domain | Status | One line |
 |---|---|---|
 | `core` | ✓ | engine (model/commands/view/input rules/parseHTML) — **Phases 2–4 complete**: tree, paths, full block set incl. tables, block chrome, rich paste. `core/SPEC.md` |
-| `formatting` | ◑ | text styling & alignment — bold/italic/code/link/align shipped; **color/highlight/fontSize marks + bubble palette shipped**; open: font family, block indent. `formatting/SPEC.md` |
+| `formatting` | ✓ | text styling & alignment — full mark set shipped (bold/italic/code/link, color/highlight/fontSize/fontFamily, custom color pickers, bubble palette); block indent resolved as won't-build (nesting is the mechanism). `formatting/SPEC.md` |
 | `integration` | ✓ | the agent-adapter seam — pipe proven, `@custom-wysiwyg/agent-adapter` shipped (context out, undoable markdown/stream edits in), scripted demo session; open: first live LLM pass. `integration/PLAN.md` |
 | ui | ✓ | framework-free widgets (BubbleMenu, SlashMenu) — no folder yet; mint when it grows rules |
 | react | ✓ | bindings (`useEditor`/`<Editor>`, SSR-safe) — no folder yet |
@@ -71,9 +71,9 @@ Rules to respect while doing it: `core/SPEC.md`.
 
 - [x] Boolean marks (bold/italic/code) + link; block alignment incl. justify (Phases 0–1)
 - [x] Valued style marks: **text color, highlight, font size** (token-based) — replace-not-toggle semantics, HTML `<span style>` export, Markdown inline-HTML fallback (`styledText: 'plain'` to drop), bubble-menu palette
-- [ ] Font family (token set: default / serif / mono)
-- [ ] Generic block indent for non-list blocks (decide vs. nesting before Phase 4)
-- [ ] Custom color input in the palette
+- [x] Font family (token set: default / serif / mono) — same valued-mark shape; Font row in the palette; HTML importer maps stacks back to tokens
+- [x] Generic block indent for non-list blocks — **resolved: won't build.** Nesting (Tab in lists, `children`, gutter drag) is the mechanism; a flat indent attr would duplicate hierarchy (decision recorded in `formatting/SPEC.md`)
+- [x] Custom color input in the palette (native pickers in the Text and Mark rows; bubble focus-guard extended so picker focus doesn't dismiss it)
 
 ## Ongoing / parallel track
 

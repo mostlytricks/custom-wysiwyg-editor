@@ -69,6 +69,14 @@ describe('styled text', () => {
     )
   })
 
+  it('serializes font family tokens as their CSS stacks', () => {
+    const serif = { type: 'fontFamily', attrs: { value: 'serif' } } as const
+    const out = serializeHTML(doc(paragraph([text('lit', [serif])])))
+    expect(out).toBe(
+      '<p><span style="font-family: Georgia, &#39;Times New Roman&#39;, serif">lit</span></p>',
+    )
+  })
+
   it('keeps emphasis inside the styled span', () => {
     const out = serializeHTML(doc(paragraph([text('b', [{ type: 'bold' }, red])])))
     expect(out).toBe('<p><span style="color: #e03e3e"><strong>b</strong></span></p>')

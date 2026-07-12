@@ -1,8 +1,8 @@
 # SPEC — formatting (text styling & alignment)
 
 Compact agent contract for **how styling attaches to text and survives export**:
-marks (bold/italic/code/link/color/highlight/fontSize), block alignment, stored
-marks, and the export-fallback policy. The *engine mechanics* (command shape,
+marks (bold/italic/code/link/color/highlight/fontSize/fontFamily), block
+alignment, stored marks, and the export-fallback policy. The *engine mechanics* (command shape,
 path helpers, view walls) stay in `../core/SPEC.md` — read both before changing
 styling behavior.
 
@@ -19,14 +19,17 @@ Marks are a flat set on each `TextSpan`. Two families:
 
 - **Boolean marks** — `bold`, `italic`, `code`: present or absent; `toggleMark` flips them.
 - **Valued marks** — `link { href }`, `color { value }`, `highlight { value }`,
-  `fontSize { value }`: at most one *of each type* per span; **setting a new value
-  replaces the old one, it never toggles off** — removal is explicit
-  (`removeMark(type)` / passing `null` in the editor command).
+  `fontSize { value }`, `fontFamily { value }`: at most one *of each type* per
+  span; **setting a new value replaces the old one, it never toggles off** —
+  removal is explicit (`removeMark(type)` / passing `null` in the editor command).
 
 `fontSize.value` is a **token** (`'small' | 'large' | 'huge'`), not a CSS length —
-render/export own the token→size mapping (one place: `FONT_SIZES`). Colors are CSS
-color strings; the UI offers a fixed palette but the model accepts any string
-(export must escape them).
+render/export own the token→size mapping (one place: `FONT_SIZES`). Likewise
+`fontFamily.value` is a token (`'serif' | 'mono'`; default font = mark absent)
+mapped through `FONT_FAMILIES`; the HTML importer maps stacks back by exact match,
+else a keyword sniff (`mono` / `serif`-but-not-`sans-serif`). Colors are CSS
+color strings; the UI offers a fixed palette **plus a native custom picker**, and
+the model accepts any string (export must escape them).
 
 ## Minimal Shape — a new valued mark
 
@@ -52,9 +55,25 @@ color strings; the UI offers a fixed palette but the model accepts any string
 - given a collapsed caret, when a color is set and text is typed → the new text carries the color `[test:marks]`
 - given colored+sized text, when exported to HTML → one `<span style>` carrying both declarations `[test:export]`
 - given styled text, when exported to Markdown (default) → inline `<span style>` fallback; with `styledText: 'plain'` → clean Markdown, styles dropped `[test:export]`
+- given serif text, when mono is applied over it → the range is mono (replaced, never toggled off); `removeMark('fontFamily')` restores the default font `[test:marks]`
+- given a `fontFamily` mark, when exported to HTML/Markdown → the token's CSS stack in the span style; when that HTML is parsed back → the token round-trips `[test:export]` `[test:parse-html]`
 
-## Open (planned, not started)
+## UI gotcha — inputs inside the bubble
 
-- `OPEN:` font family (token set: default / serif / mono) — same valued-mark shape
-- `OPEN:` generic block indent for non-list blocks (Notion nests instead; decide before Phase 4 drag-drop)
-- `OPEN:` custom color input in the palette (model already accepts any CSS color)
+The bubble menu keeps focus in the editor via a dom-level `mousedown`
+`preventDefault`. Anything that must take real focus (link input, custom color
+pickers) opts out with `stopPropagation` **and** must arm a guard flag before
+the editor's `blur` fires (`linkOpen` / `pickerOpen`), or the bubble hides
+under the user's cursor. The model selection survives the blur; commit paths
+re-apply and refocus. `[review]` + Chromium smoke (`smoke-format2`).
+
+## Resolved
+
+- Font family — shipped as the valued mark above (v0.2.x): default / serif / mono.
+- Custom color input — shipped: native `<input type="color">` in the Text and
+  Mark palette rows; model unchanged (already accepted any CSS color).
+- Generic block indent for non-list blocks — **won't build.** Decision: nesting
+  is the mechanism (Tab in lists, `children` everywhere else, gutter drag for
+  restructuring); a per-block indent attr would duplicate hierarchy state and
+  desync exports. Revisit only if a flat-indent use case shows up that nesting
+  can't express.

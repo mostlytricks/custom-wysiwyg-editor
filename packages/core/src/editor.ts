@@ -1,4 +1,13 @@
-import type { Alignment, DocNode, FontSizeToken, HeadingLevel, ListKind, Mark, MarkType } from './model/types'
+import type {
+  Alignment,
+  DocNode,
+  FontFamilyToken,
+  FontSizeToken,
+  HeadingLevel,
+  ListKind,
+  Mark,
+  MarkType,
+} from './model/types'
 import type { Position, SelectionRange } from './model/position'
 import { collapsedSelection, selectionsEqual } from './model/position'
 import * as commands from './commands'
@@ -201,6 +210,12 @@ export class Editor {
         value === null
           ? commands.removeMark(this.state, 'fontSize')
           : commands.applyMark(this.state, { type: 'fontSize', attrs: { value } }),
+      ),
+    setFontFamily: (value: FontFamilyToken | null): boolean =>
+      this.apply(
+        value === null
+          ? commands.removeMark(this.state, 'fontFamily')
+          : commands.applyMark(this.state, { type: 'fontFamily', attrs: { value } }),
       ),
     setHeading: (level: HeadingLevel): boolean => this.apply(commands.setHeading(this.state, level)),
     setParagraph: (): boolean => this.apply(commands.setParagraph(this.state)),
