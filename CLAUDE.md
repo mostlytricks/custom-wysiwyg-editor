@@ -9,8 +9,6 @@ Markdown/HTML export, Notion-style UI layer.
 > what to read before changing what). Session ritual: read `CONTEXT.md` first; update it before stopping.
 <!-- /gravity:router -->
 
-> **Protocol card: read `.gravity/GRAVITY.md` before touching `.gravity/` docs.** It embeds the project-side gravity protocol (doc kinds + rates, navigation discipline, SPEC anatomy) so this repo is self-describing even when opened without the workspace. It's a versioned copy — never hand-edit; re-copy from the workspace on a gravity upgrade.
-
 ## Commands
 
 ```bash
