@@ -94,11 +94,14 @@ def rule_kind(tag: str) -> str:
 
 
 # Top-level .gravity/ dirs that are never subject domains; check_project.py
-# holds the same set for its index checks. Two kinds:
+# holds the same set for its index checks. The v4 rule: a leading `_` marks
+# gravity machinery, never a domain. Two kinds:
 #   evidence doors  (workspace CLAUDE.md §6) — the drop zone and the given layer
 #   machinery       — the installed protocol lib and its generated output, which
 #                     are tooling living in .gravity/, not subjects to document
-NON_DOMAIN_DIRS = {"inbox", "given", "lib", "observatory"}
+# Pre-v4 bare names stay in the set so unmigrated dirs are never read as domains.
+NON_DOMAIN_DIRS = {"_inbox", "_given", "_lib", "_observatory",
+                   "inbox", "given", "lib", "observatory"}
 
 
 def domain_dirs(g: Path) -> list[Path]:
@@ -106,7 +109,7 @@ def domain_dirs(g: Path) -> list[Path]:
         return []
     return sorted(p for p in g.iterdir()
                   if p.is_dir() and p.name not in NON_DOMAIN_DIRS
-                  and not p.name.startswith("."))
+                  and not p.name.startswith((".", "_")))
 
 
 # ---------------------------------------------------------------------------
@@ -395,7 +398,7 @@ def scan_couplings(project: Path) -> list[dict]:
             if other == d:
                 continue
             ref = re.compile(rf"(?:\.gravity/)?{re.escape(other)}"
-                             r"/(?:SPEC|PLAN|ARCHITECTURE|given)")
+                             r"/(?:SPEC|PLAN|ARCHITECTURE|_given|given)")
             n = len(ref.findall(texts[d]))
             if n:
                 key = tuple(sorted((d, other)))
@@ -675,7 +678,7 @@ def scan_gate_runs(project: Path) -> dict:
     """The recorded outcome of each domain's Gate — freshness of proof.
 
     Written by `run_gate.py --all` into the self-ignoring
-    `.gravity/observatory/gates.json`; generated, never authored, because "does
+    `.gravity/_observatory/gates.json`; generated, never authored, because "does
     it pass right now" changes at test-run rate — faster than the fastest doc
     rate (CONTEXT.md's per-session), so a typed version would lie between
     commits. Absent file, absent domain, or unreadable JSON all mean *never
@@ -686,7 +689,7 @@ def scan_gate_runs(project: Path) -> dict:
     no git, no staleness judgement (unknown is not stale).
     """
     try:
-        raw = json.loads((project / ".gravity" / "observatory" / "gates.json")
+        raw = json.loads((project / ".gravity" / "_observatory" / "gates.json")
                          .read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}

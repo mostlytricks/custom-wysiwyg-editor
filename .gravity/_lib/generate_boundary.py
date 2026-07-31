@@ -24,7 +24,7 @@ Usage:
     python gravity/lib/generate_boundary.py [<project-path-or-alias>]
         [--theme aurora|daylight|sandstone|forest|slate] [--open]
 
-Output: <project>/.gravity/observatory/<project>.seams.html (self-ignoring — regenerate).
+Output: <project>/.gravity/_observatory/<project>.seams.html (self-ignoring — regenerate).
 """
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ import webbrowser
 from pathlib import Path
 
 # Siblings in this same lib/ — whether it sits in the gravity distribution or
-# installed at <project>/.gravity/lib/. No workspace path is ever assumed.
+# installed at <project>/.gravity/_lib/. No workspace path is ever assumed.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from project_arg import observatory_dir, resolve_target  # noqa: E402
 from scan_project import scan_integration, trunc  # noqa: E402  (one scanner, many instruments)

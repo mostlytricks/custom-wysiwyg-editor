@@ -7,7 +7,7 @@ same script works from both homes gravity's lib can live in:
 
   workspace distribution   gravity/lib/…            `<name>` aliases resolve
                                                     via the tier folders
-  installed in a project   <project>/.gravity/lib/… no argument needed — the
+  installed in a project   <project>/.gravity/_lib/… no argument needed — the
                                                     lib's own location names
                                                     the project it belongs to
 
@@ -28,11 +28,11 @@ _HERE = Path(__file__).resolve().parent
 def installed_root() -> Path | None:
     """The project this lib is installed into, or None when it isn't installed.
 
-    `<project>/.gravity/lib/project_arg.py` -> `<project>`; the workspace
+    `<project>/.gravity/_lib/project_arg.py` -> `<project>`; the workspace
     distribution (`gravity/lib/`) has no owning project and returns None.
     """
     parents = _HERE.parents
-    if _HERE.name == "lib" and len(parents) >= 2 and parents[0].name == ".gravity":
+    if _HERE.name == "_lib" and len(parents) >= 2 and parents[0].name == ".gravity":
         return parents[1]
     return None
 
@@ -60,7 +60,7 @@ def _workspace_resolve(token: str):
 
 
 def observatory_dir(project: Path) -> Path:
-    """`<project>/.gravity/observatory/`, created and self-ignoring.
+    """`<project>/.gravity/_observatory/`, created and self-ignoring.
 
     The rendered page lives *inside* the project so anyone who opens the repo
     can see it — but it is generated, so it must never become a tracked
@@ -69,7 +69,7 @@ def observatory_dir(project: Path) -> Path:
     ignoring itself and its contents: no project ever needs a .gitignore edit
     to adopt this, now or at adoption time.
     """
-    out = Path(project) / ".gravity" / "observatory"
+    out = Path(project) / ".gravity" / "_observatory"
     out.mkdir(parents=True, exist_ok=True)
     (out / ".gitignore").write_text("*\n", encoding="utf-8")
     return out

@@ -4,7 +4,7 @@ check_project.py — the project-scoped structural checks for a `.gravity/` doc 
 
 The portable half of gravity's checker: everything here judges ONE project from
 its own docs, so it runs identically from the workspace (`/triage`, the
-observatory drift card) and from a bare clone that carries `.gravity/lib/` and
+observatory drift card) and from a bare clone that carries `.gravity/_lib/` and
 has never seen the workspace. The workspace-scoped half (tier/index drift over
 `PROJECTS.md`, the golden-scenario fixtures, the CLI) stays manager-side in
 `.claude/scenarios/check.py`, which imports this module.
@@ -47,7 +47,7 @@ from pathlib import Path
 
 # One scanner, many callers: coupling facts come from scan_project.py — a
 # sibling in this same lib/, whether that lib sits in the gravity distribution
-# or installed at <project>/.gravity/lib/. If the scanner is missing/broken the
+# or installed at <project>/.gravity/_lib/. If the scanner is missing/broken the
 # coupling check stays silent — under-claiming, never noise.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 try:
@@ -62,7 +62,7 @@ def protocol_version() -> str:
     travels with it. Two layouts, one rule — look beside the lib, then above it:
 
       workspace distribution   gravity/lib/check_project.py -> gravity/VERSION
-      installed in a project   .gravity/lib/check_project.py -> .gravity/lib/VERSION
+      installed in a project   .gravity/_lib/check_project.py -> .gravity/_lib/VERSION
 
     Returns "" when neither exists (then version drift simply isn't judged —
     unknown is not stale).
@@ -98,13 +98,21 @@ CROSS_CUTTING = {
 }
 
 # Top-level .gravity/ DIRECTORIES that are never subject domains — they must not
-# be index-wired or they FAIL as UNDERWIRED. Two kinds:
+# be index-wired or they FAIL as UNDERWIRED. The v4 rule: a leading `_` marks
+# gravity machinery/evidence doors, never a domain. Two kinds:
 #   evidence doors  (workspace CLAUDE.md §6: the git-ignored intake drop zone and
 #                    the cross-cutting given layer) — check_given owns their health
-#   machinery       — the installed protocol lib (.gravity/lib/) and its generated
-#                     output (.gravity/observatory/): tooling, not documented subjects
+#   machinery       — the installed protocol lib (.gravity/_lib/) and its generated
+#                     output (.gravity/_observatory/): tooling, not documented subjects
+# The pre-v4 bare names stay in the set so an unmigrated project is never misread
+# as having domains named `lib`/`inbox` — check_protocol WARNs on them instead.
 # scan_project.py holds the same set for the instruments.
-NON_DOMAIN_DIRS = {"inbox", "given", "lib", "observatory"}
+NON_DOMAIN_DIRS = {"_inbox", "_given", "_lib", "_observatory",
+                   "inbox", "given", "lib", "observatory"}
+
+# The pre-v4 -> v4 machinery rename map (gravity 4.0.0): old bare name -> sigiled.
+LEGACY_MACHINERY = {"inbox": "_inbox", "given": "_given",
+                    "lib": "_lib", "observatory": "_observatory"}
 
 # The four index regions a domain must appear in, by id -> human label.
 REGIONS = {
@@ -125,6 +133,7 @@ class Finding:
     code: str       # UNDERWIRED | ORPHAN_ROUTE | MISSING_FILE | INDEX_ABSENT | STRUCTURE
                     # | PROTOCOL_MISSING | PROTOCOL_STALE | COUPLING_UNCONTRACTED
                     # | SLICE_STALE | LIB_MISSING | LIB_STALE | ARCH_PATH_DEAD
+                    # | MACHINERY_UNMIGRATED
     domain: str     # the slug it concerns ("" if structural)
     region: str     # which index/region ("" if n/a)
     message: str
@@ -186,7 +195,7 @@ def discover_domains(gravity_dir: Path) -> set[str]:
         p.name
         for p in gravity_dir.iterdir()
         if p.is_dir() and p.name not in CROSS_CUTTING
-        and p.name not in NON_DOMAIN_DIRS and not p.name.startswith(".")
+        and p.name not in NON_DOMAIN_DIRS and not p.name.startswith((".", "_"))
     }
 # --------------------------------------------------------------------------- #
 # the core check
@@ -259,21 +268,37 @@ def check_gravity_consistency(project_dir: str | Path) -> list[Finding]:
                 f".gravity/GRAVITY.md is stamped v{stamp[1]}.{stamp[2]} but the "
                 f"gravity distribution is v{ws_ver[1]}.{ws_ver[2]} — re-copy the template"))
 
-    # LIB — the installed instruments (.gravity/lib/, copied by install_lib.py).
+    # MACHINERY_UNMIGRATED — pre-v4 bare-named machinery dirs still on disk.
+    # They are excluded from domain enumeration either way (NON_DOMAIN_DIRS keeps
+    # the old names), so this is drift, not breakage -> WARN pointing at the
+    # mechanical migration.
+    for old, new in sorted(LEGACY_MACHINERY.items()):
+        hits = [gravity / old] if (gravity / old).is_dir() else []
+        if old == "given":   # the given layer also lives per-domain
+            hits += [p for p in sorted(gravity.glob("*/given")) if p.is_dir()]
+        for hit in hits:
+            findings.append(Finding(
+                WARN, "MACHINERY_UNMIGRATED", "", "",
+                f"{hit.relative_to(project)} uses the pre-v4 name — gravity v4 "
+                f"renamed machinery dirs with a `_` sigil ({old}/ -> {new}/); "
+                f"run python .claude/scripts/migrate_gravity_v4.py <project>"))
+
+    # LIB — the installed instruments (.gravity/_lib/, copied by install_lib.py).
     # The card makes the repo self-describing; the lib makes it self-rendering,
     # so a clone with no workspace can still scan, check and render itself.
     # Same severity logic as the card: drift, not breakage -> WARN.
-    lib_ver = _read(gravity / "lib" / "VERSION").strip()
+    lib_ver = _read(gravity / "_lib" / "VERSION").strip()
     running = protocol_version()
-    if not (gravity / "lib").is_dir():
-        findings.append(Finding(
-            WARN, "LIB_MISSING", "", "",
-            "no .gravity/lib/ — the repo can't render or check itself off-workspace; "
-            "run python .claude/scripts/install_lib.py <project>"))
+    if not (gravity / "_lib").is_dir():
+        if not (gravity / "lib").is_dir():   # unmigrated lib/ already WARNed above
+            findings.append(Finding(
+                WARN, "LIB_MISSING", "", "",
+                "no .gravity/_lib/ — the repo can't render or check itself off-workspace; "
+                "run python .claude/scripts/install_lib.py <project>"))
     elif not lib_ver:
         findings.append(Finding(
             WARN, "LIB_STALE", "", "",
-            ".gravity/lib/ has no VERSION stamp (hand-copied?) — reinstall with "
+            ".gravity/_lib/ has no VERSION stamp (hand-copied?) — reinstall with "
             "python .claude/scripts/install_lib.py <project>"))
     else:
         # Only judged when a NEWER distribution is doing the judging. Run from
@@ -288,7 +313,7 @@ def check_gravity_consistency(project_dir: str | Path) -> list[Finding]:
             if _t(m_lib) < _t(m_run):
                 findings.append(Finding(
                     WARN, "LIB_STALE", "", "",
-                    f".gravity/lib/ is v{lib_ver} but the gravity distribution is "
+                    f".gravity/_lib/ is v{lib_ver} but the gravity distribution is "
                     f"v{running} — reinstall with "
                     f"python .claude/scripts/install_lib.py <project>"))
 
@@ -648,14 +673,14 @@ _ARCH_ANCHOR_RE = re.compile(r'data-path="([^"]*)"')
 
 def _arch_pages(gravity: Path) -> list[Path]:
     """Every authored ARCHITECTURE.html: the cross-cutting one plus one per
-    domain folder. Generated output (observatory/) and the installed lib are
+    domain folder. Generated output (_observatory/) and the installed lib are
     never authored, so they're out of scope by construction."""
     pages: list[Path] = []
     top = gravity / "ARCHITECTURE.html"
     if top.is_file():
         pages.append(top)
     for sub in sorted(p for p in gravity.iterdir() if p.is_dir()):
-        if sub.name in NON_DOMAIN_DIRS or sub.name.startswith("."):
+        if sub.name in NON_DOMAIN_DIRS or sub.name.startswith((".", "_")):
             continue
         page = sub / "ARCHITECTURE.html"
         if page.is_file():
@@ -786,30 +811,37 @@ def check_intake(project_dir: str | Path) -> list[Finding]:
                             f"{where}: routed to '{path}' which does not exist"))
     return findings
 # ---------------------------------------------------------------------------
-# the given layer — .gravity/inbox/ + given/ + MANIFEST.md (the /given command)
+# the given layer — .gravity/_inbox/ + _given/ + MANIFEST.md (the /given command)
 
 
 def _given_dirs(project: Path):
     gravity = project / ".gravity"
-    dirs = [gravity / "given"] + sorted(gravity.glob("*/given"))
+    # pre-v4 bare names still honored so an unmigrated project's given layer is
+    # judged, not invisible (MACHINERY_UNMIGRATED already flags the rename).
+    dirs = [gravity / "_given", gravity / "given"] + \
+        sorted(gravity.glob("*/_given")) + sorted(gravity.glob("*/given"))
     return [d for d in dirs if d.is_dir()]
 
 
 def check_given(project_dir: str | Path) -> list[Finding]:
     """Given-layer honesty: nothing rots in the drop zone, every file in a
-    given/ folder has a manifest row, and no non-private row points at a ghost
+    _given/ folder has a manifest row, and no non-private row points at a ghost
     file. Severity bar: FAIL = manifest contradicts disk; WARN = unrouted or
     unregistered material (knowledge sitting outside the system)."""
     project = Path(project_dir)
     findings: list[Finding] = []
 
-    inbox = project / ".gravity" / "inbox"
-    if inbox.is_dir():
+    for inbox_name in ("_inbox", "inbox"):   # bare name = pre-v4, still judged
+        inbox = project / ".gravity" / inbox_name
+        if not inbox.is_dir():
+            continue
         for f in sorted(inbox.rglob("*")):
-            if f.is_file() and f.name != ".gitkeep":
+            # README.md is the DOOR, not a dropped file — seeded at adoption,
+            # tracked so a clone still sees the sign (INBOX.template.md).
+            if f.is_file() and f.name not in (".gitkeep", "README.md"):
                 findings.append(Finding(
                     WARN, "INBOX_UNROUTED", "", "",
-                    f".gravity/inbox/{f.relative_to(inbox).as_posix()} is "
+                    f".gravity/{inbox_name}/{f.relative_to(inbox).as_posix()} is "
                     f"sitting unrouted in the drop zone — run /given"))
 
     for gdir in _given_dirs(project):
@@ -841,7 +873,7 @@ def check_given(project_dir: str | Path) -> list[Finding]:
 
 
 # --------------------------------------------------------------------------- #
-# CLI — so a project carrying .gravity/lib/ can check itself off-workspace.
+# CLI — so a project carrying .gravity/_lib/ can check itself off-workspace.
 # The workspace door (.claude/scenarios/check.py) adds the workspace checks,
 # the golden-scenario fixtures, and the selftest; this one is project-only.
 # --------------------------------------------------------------------------- #

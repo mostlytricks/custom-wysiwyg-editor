@@ -8,7 +8,7 @@ line) and executes it inside the project, propagating the exit code — so
 "prove it" is one call for /preflight, /patch-slice, or a bare agent.
 
 `--all` sweeps every fenced domain and records the outcome to
-`.gravity/observatory/gates.json` — the *freshness of proof*, which nothing
+`.gravity/_observatory/gates.json` — the *freshness of proof*, which nothing
 else in gravity holds. SPEC tags say which rules have walls, the Behavioral
 Contract says which behaviours have a named test, and `GATE_DEAD` proves the
 named script exists — but all of that proves a test is *named*, never that it
@@ -140,7 +140,7 @@ def main() -> None:
     ap.add_argument("args", nargs="*", metavar="[<project>] <domain>")
     ap.add_argument("--all", action="store_true",
                     help="sweep every fenced domain and record the outcome to "
-                         ".gravity/observatory/gates.json")
+                         ".gravity/_observatory/gates.json")
     opts = ap.parse_args()
 
     if opts.all:

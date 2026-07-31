@@ -41,15 +41,15 @@ Everything is scanned live from the docs. A wrong page means wrong docs.
 Usage:
     python gravity/lib/generate_observatory.py [<project-path-or-alias>]
 
-From inside a project that carries .gravity/lib/ (installed by
+From inside a project that carries .gravity/_lib/ (installed by
 .claude/scripts/install_lib.py), no argument is needed — the lib's own
 location names the project it belongs to, so a clone that has never seen
 the workspace renders itself:
 
-    python .gravity/lib/generate_observatory.py
+    python .gravity/_lib/generate_observatory.py
         [--theme aurora|daylight|sandstone|forest|slate] [--open]
 
-Output: <project>/.gravity/observatory/index.html — inside the project, so
+Output: <project>/.gravity/_observatory/index.html — inside the project, so
 anyone who opens the repo can see it. The folder carries a .gitignore of `*`
 (it ignores itself): the page is generated, and a committed page is one that
 can go stale in git. Doc links are relative for the same reason — an absolute
@@ -65,7 +65,7 @@ import webbrowser
 from pathlib import Path
 
 # Siblings in this same lib/ — whether it sits in the gravity distribution or
-# installed at <project>/.gravity/lib/. No workspace path is ever assumed.
+# installed at <project>/.gravity/_lib/. No workspace path is ever assumed.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from project_arg import observatory_dir, resolve_target  # noqa: E402
 from scan_project import scan, trunc  # noqa: E402
@@ -78,7 +78,7 @@ except Exception:  # pragma: no cover — checker unavailable ≠ checker clean
 
 esc = html_mod.escape
 
-# The page is written to <project>/.gravity/observatory/index.html, so a link to
+# The page is written to <project>/.gravity/_observatory/index.html, so a link to
 # an authored doc climbs two levels back to the project root. Relative, never
 # file:// — an absolute URI pins the page to the machine that rendered it, and
 # this page now ships inside the project.
@@ -113,7 +113,7 @@ def drift_card(findings) -> str:
     if findings is None:
         return ('<div class="ocard warn"><div class="ohead">drift — checkers unavailable</div>'
                 '<div class="okv">check.py could not be imported; run '
-                '<span class="mono">python .gravity/lib/check_project.py</span> yourself — unavailable is not clean.</div></div>')
+                '<span class="mono">python .gravity/_lib/check_project.py</span> yourself — unavailable is not clean.</div></div>')
     if not findings:
         return ('<div class="ocard"><div class="ohead">drift — consistency + spec honesty</div>'
                 '<div class="okv okc">0 findings — indexes wired, protocol card current, '

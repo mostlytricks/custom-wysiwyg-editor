@@ -1,4 +1,4 @@
-> **gravity protocol · v3.6** — copied from the workspace `gravity/GRAVITY-PROTOCOL.md`; never hand-edit. On a gravity upgrade, re-copy from the workspace (`/triage` flags a stale card).
+> **gravity protocol · v4.0** — copied from the workspace `gravity/GRAVITY-PROTOCOL.md`; never hand-edit. On a gravity upgrade, re-copy from the workspace (`/triage` flags a stale card).
 
 # The gravity protocol (project-side)
 
@@ -11,7 +11,7 @@ This project organizes its documentation with **gravity**. Two files auto-load f
 | `.gravity/MISSION.html` | **why** — north star, principles, non-goals | rarely |
 | root `CLAUDE.md` | **how** — identity, stack, run/test, conventions (+ gravity's fenced pointer block) | on refactors |
 | `.gravity/ROUTER.md` | **routing** — the Doc Map + what to read before changing what + the is-it-a-domain gate | when domains change |
-| `.gravity/<domain>/given/` + `MANIFEST.md` | **received** — knowledge handed in from outside (quarry, never contract; disputes resolve against `raw/`) | when material arrives via `.gravity/inbox/` |
+| `.gravity/<domain>/_given/` + `MANIFEST.md` | **received** — knowledge handed in from outside (quarry, never contract; disputes resolve against `raw/`) | when material arrives via `.gravity/_inbox/` |
 | `.gravity/ARCHITECTURE.html` | **how it's built** — the *map*: the Domain × Layer grid + the flows across it | on structural change |
 | `.gravity/IMPLEMENTATION_PLAN.md` | **what/next** — roadmap spine + per-domain `✓/◑/○` status (+ optional **Tracks**, the direction axis) | per phase/slice |
 | root `CONTEXT.md` | **now** — current state + the single next step | every session |
@@ -48,21 +48,23 @@ Behavioral domains add a **Behavioral Contract** of `given/when/then` invariants
 
 ## Seeing the system (the observatory)
 
-This repo carries its own instruments in **`.gravity/lib/`** — stdlib-only Python, copied verbatim from the gravity distribution and versioned by `.gravity/lib/VERSION`. The card above makes the repo self-*describing*; the lib makes it self-*rendering*, so none of this needs the workspace it came from:
+This repo carries its own instruments in **`.gravity/_lib/`** — stdlib-only Python, copied verbatim from the gravity distribution and versioned by `.gravity/_lib/VERSION`. The card above makes the repo self-*describing*; the lib makes it self-*rendering*, so none of this needs the workspace it came from:
 
 ```bash
-python .gravity/lib/generate_observatory.py     # the whole system as one page
-python .gravity/lib/check_project.py            # the structural checks, on this project
-python .gravity/lib/check_project.py --only arch  # ARCHITECTURE.html nodes still name real files
-python .gravity/lib/run_gate.py <domain>        # the domain's gate, by its own exit code
-python .gravity/lib/run_gate.py --all           # sweep every gate; record proof freshness
+python .gravity/_lib/generate_observatory.py     # the whole system as one page
+python .gravity/_lib/check_project.py            # the structural checks, on this project
+python .gravity/_lib/check_project.py --only arch  # ARCHITECTURE.html nodes still name real files
+python .gravity/_lib/run_gate.py <domain>        # the domain's gate, by its own exit code
+python .gravity/_lib/run_gate.py --all           # sweep every gate; record proof freshness
+python .gravity/_lib/scan_db.py                  # DB evidence pack -> candidate domains + seams
+                                                #   (reads integration/structural/db/ — DDL or CSVs)
 ```
 
-The page lands at **`.gravity/observatory/index.html`** — seven tabs over one scan of these docs (Overview + drift · Queue · Seams · Spec Health · Graduation · Timeline · Orbit 3D). It is **generated, never authored**: the folder ignores itself, and *a wrong page means the docs are wrong* — fix the docs and re-render, never the HTML.
+The page lands at **`.gravity/_observatory/index.html`** — seven tabs over one scan of these docs (Overview + drift · Queue · Seams · Spec Health · Graduation · Timeline · Orbit 3D). It is **generated, never authored**: the folder ignores itself, and *a wrong page means the docs are wrong* — fix the docs and re-render, never the HTML.
 
 **Generated vs authored — the pair that must never be confused.** The observatory and the `ARCHITECTURE.html` pages share one visual language on purpose (a reader shouldn't learn two), but they have opposite provenance: the observatory is *generated, git-ignored, disposable*, while an ARCHITECTURE page is *authored, committed, and maintained by a human*. A page that reads as auto-derived is a page nobody maintains — so an authored page **stamps** `authored · last reviewed <date>` rather than letting the resemblance imply it. Its grid cells and flow steps carry `data-path="<file>"` anchors, and `check_project.py --only arch` asserts those files still exist (`ARCH_PATH_DEAD`, WARN). That wall catches a **moved or deleted file only** — it cannot tell you an arrow is now wrong or a branch was added and never drawn. Dead paths get a finding; everything else needs a human re-read.
 
-`lib/`, `observatory/`, `inbox/` and `given/` are the four `.gravity/` directories that are **not** subject domains — they're machinery and evidence doors, so they carry no SPEC and are never wired into the indexes.
+**A leading `_` marks gravity machinery, never a domain**: `_lib/`, `_observatory/`, `_inbox/` and `_given/` are the four sigiled `.gravity/` directories — machinery and evidence doors, so they carry no SPEC and are never wired into the indexes. The sigil is the rule: an agent minting a domain never needs the list, and no domain can collide with (or be mistaken for) the machinery.
 
 ## What never to do
 
@@ -72,5 +74,5 @@ The page lands at **`.gravity/observatory/index.html`** — seven tabs over one 
 - Don't restate a fact another doc owns — link to it.
 - Don't invent docs to fill the layout — docs are recognized only when present; a domain with just a `PLAN.md` is fine.
 - Don't leave an unknown plausibly filled — write it as a visible `OPEN:` line.
-- Don't hand-edit this card, or anything in `.gravity/lib/` — both are versioned verbatim copies; re-copy from the workspace to upgrade. A local patch to an installed module is drift the next upgrade silently overwrites.
-- Don't commit `.gravity/observatory/` output, and don't hand-edit it — it's regenerated from the docs.
+- Don't hand-edit this card, or anything in `.gravity/_lib/` — both are versioned verbatim copies; re-copy from the workspace to upgrade. A local patch to an installed module is drift the next upgrade silently overwrites.
+- Don't commit `.gravity/_observatory/` output, and don't hand-edit it — it's regenerated from the docs.
