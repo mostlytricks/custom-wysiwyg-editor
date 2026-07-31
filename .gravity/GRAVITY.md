@@ -1,4 +1,4 @@
-> **gravity protocol · v3.2** — copied from the workspace `gravity/GRAVITY-PROTOCOL.md`; never hand-edit. On a gravity upgrade, re-copy from the workspace (`/triage` flags a stale card).
+> **gravity protocol · v3.6** — copied from the workspace `gravity/GRAVITY-PROTOCOL.md`; never hand-edit. On a gravity upgrade, re-copy from the workspace (`/triage` flags a stale card).
 
 # The gravity protocol (project-side)
 
@@ -12,17 +12,21 @@ This project organizes its documentation with **gravity**. Two files auto-load f
 | root `CLAUDE.md` | **how** — identity, stack, run/test, conventions (+ gravity's fenced pointer block) | on refactors |
 | `.gravity/ROUTER.md` | **routing** — the Doc Map + what to read before changing what + the is-it-a-domain gate | when domains change |
 | `.gravity/<domain>/given/` + `MANIFEST.md` | **received** — knowledge handed in from outside (quarry, never contract; disputes resolve against `raw/`) | when material arrives via `.gravity/inbox/` |
-| `.gravity/ARCHITECTURE.html` | **how it's built** — system overview | on structural change |
+| `.gravity/ARCHITECTURE.html` | **how it's built** — the *map*: the Domain × Layer grid + the flows across it | on structural change |
 | `.gravity/IMPLEMENTATION_PLAN.md` | **what/next** — roadmap spine + per-domain `✓/◑/○` status (+ optional **Tracks**, the direction axis) | per phase/slice |
 | root `CONTEXT.md` | **now** — current state + the single next step | every session |
 | `.gravity/<domain>/SPEC.md` | the **change contract** for this domain (agent-loadable) | when rules change |
-| `.gravity/<domain>/ARCHITECTURE.html` | the domain's human deep-dive / full rationale | on structural change |
+| `.gravity/<domain>/ARCHITECTURE.html` | the domain's human deep-dive — the *trace*: one grid row expanded down the layers | on structural change |
 | `.gravity/<domain>/PLAN.*.md` | the **intent of one change** — goal, scenario, slice, verification | per slice |
+| `docs/walkthroughs/<date>-<domain>-<slug>.md` | the **proof** — dated, append-only record of one shipped slice: what changed + the evidence it works (gate output, UI screenshots) | frozen at ship |
+| `docs/intake/<date>.md` | **received** — one verbatim bug-report batch, six facts per item (gaps as `OPEN:`, never plausibly filled) | per batch |
 
 Three disciplines bind them:
 - **One concern, one home.** Every fact has exactly one owner-doc; any other doc *links* to the owner instead of restating it. A fact written twice eventually drifts into two different facts.
 - **Touch the doc that matches the change's rate.** *now* → `CONTEXT.md` · *what/next* → the domain's `PLAN.*.md` · *rules* → `SPEC.md` · *how-it's-built* → `ARCHITECTURE.html` · *why* → `MISSION.html`. Never write *now* into MISSION or *why* into CONTEXT.
 - **One unit of work — the slice** (the smallest shippable change that passes the gate; its intent lives in a domain `PLAN.*.md`). Phases/queue (time), the status spine (domain), and Tracks (direction) are *indexes over slices* and hold no work themselves — a phase is just a slice with an ordinal.
+
+Two of those rows are one-way doors, not living docs. A **walkthrough** is written when a slice ships and then frozen — `CONTEXT.md`'s Completed bullet *links* to it rather than restating it; skip it for trivial fixes. An **intake sheet** holds received bug reports verbatim; each root cause routes out to a slice `PLAN.*.md` + a queue row — **bugs are never a domain** (no `.gravity/bugs/`, no standing registry), and a bug is just a currently-false scenario: its repro enters the slice PLAN as `given/when/then`, and the fix leaves the named regression test that graduates it.
 
 ## How to work here (the navigation discipline)
 
@@ -49,10 +53,14 @@ This repo carries its own instruments in **`.gravity/lib/`** — stdlib-only Pyt
 ```bash
 python .gravity/lib/generate_observatory.py     # the whole system as one page
 python .gravity/lib/check_project.py            # the structural checks, on this project
+python .gravity/lib/check_project.py --only arch  # ARCHITECTURE.html nodes still name real files
 python .gravity/lib/run_gate.py <domain>        # the domain's gate, by its own exit code
+python .gravity/lib/run_gate.py --all           # sweep every gate; record proof freshness
 ```
 
 The page lands at **`.gravity/observatory/index.html`** — seven tabs over one scan of these docs (Overview + drift · Queue · Seams · Spec Health · Graduation · Timeline · Orbit 3D). It is **generated, never authored**: the folder ignores itself, and *a wrong page means the docs are wrong* — fix the docs and re-render, never the HTML.
+
+**Generated vs authored — the pair that must never be confused.** The observatory and the `ARCHITECTURE.html` pages share one visual language on purpose (a reader shouldn't learn two), but they have opposite provenance: the observatory is *generated, git-ignored, disposable*, while an ARCHITECTURE page is *authored, committed, and maintained by a human*. A page that reads as auto-derived is a page nobody maintains — so an authored page **stamps** `authored · last reviewed <date>` rather than letting the resemblance imply it. Its grid cells and flow steps carry `data-path="<file>"` anchors, and `check_project.py --only arch` asserts those files still exist (`ARCH_PATH_DEAD`, WARN). That wall catches a **moved or deleted file only** — it cannot tell you an arrow is now wrong or a branch was added and never drawn. Dead paths get a finding; everything else needs a human re-read.
 
 `lib/`, `observatory/`, `inbox/` and `given/` are the four `.gravity/` directories that are **not** subject domains — they're machinery and evidence doors, so they carry no SPEC and are never wired into the indexes.
 

@@ -9,7 +9,7 @@ The conceptual map of one project, complementing the tabular dashboard:
     Ring   = SPEC.md (the walls)         Moon = ARCHITECTURE.html (human how)
     Satellites = PLAN.*.md (intent in transit)
     Orbit distance = status (◑ active inner · ✓ stable mid · ○ planned outer)
-    Orbit speed = activity (PLAN count · doc mass · status · file recency)
+    Orbit period = distance, by Kepler's third law (the inner band runs fastest)
 
 Everything is scanned live from the same four registry owners /triage checks:
 the .gravity/ folder list, the IMPLEMENTATION_PLAN.md status spine, and
@@ -124,21 +124,106 @@ THEMES: dict[str, dict] = {
 # Scanner — lives in gravity/lib/scan_project.py (scan_domains), shared with
 # the boundary and observatory instruments so the docs are parsed one way.
 # ---------------------------------------------------------------------------
+def _luminance(token: str) -> float:
+    """Perceived luminance 0..1 of a `#rrggbb` theme token."""
+    h = token.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _mix(a: str, b: str, w: float) -> str:
+    """Blend two `#rrggbb` tokens — w=0 yields a, w=1 yields b."""
+    ah, bh = a.lstrip("#"), b.lstrip("#")
+    ch = [round(int(ah[i:i + 2], 16)
+                + (int(bh[i:i + 2], 16) - int(ah[i:i + 2], 16)) * w)
+          for i in (0, 2, 4)]
+    return "#{:02x}{:02x}{:02x}".format(*ch)
+
+
+def sky(t: dict) -> dict:
+    """The cosmic layer's colours, DERIVED from the theme's own tokens.
+
+    Nothing new enters THEMES on purpose: the five palettes are one family
+    shared with the dashboard and the browser-read HTML docs under a single
+    `dash-theme` key (DESIGN.dashboard.md — never a second family or key), so
+    retuning a palette to suit the sky would silently restyle those surfaces
+    too. The sky instead tints itself from what each theme already declares.
+
+    Light themes stay the documented "paper chart": no glow, ink-dark stars, a
+    faint wash instead of nebulae — an engraved celestial atlas rather than a
+    washed-out attempt at deep space, which a pale canvas can never be.
+
+    They also get a **muted ground**: paper white is right for a document you
+    read and glaring for a star chart, so the canvas (and only the canvas —
+    never the panel, the dashboard or the HTML docs) sits on the theme's `bg`
+    pulled most of the way toward its own `line` token. Derived, not hardcoded,
+    so a retuned palette carries its sky with it.
+    """
+    def distinct(*tokens: str) -> list[str]:
+        """First-wins dedupe — several themes alias one colour to two roles
+        (slate's `sat` is its `bgstar`), and a repeated tint just flattens the
+        variety this layer exists to create."""
+        out: list[str] = []
+        for tok in tokens:
+            if tok and tok.lower() not in {o.lower() for o in out}:
+                out.append(tok)
+        return out
+
+    light = _luminance(t["bg"]) > 0.5
+    return {
+        "light": light,
+        # the canvas ground — muted for light themes, untouched for dark ones
+        "ground": _mix(t["bg"], t["line"], GROUND_MUTE) if light else t["bg"],
+        "ground2": (_mix(t["bg2"], t["line"], GROUND_MUTE * 0.69) if light
+                    else t["bg2"]),
+        # what the vignette deepens toward (a light theme's own bg is too pale
+        # to read as an edge at all)
+        "vig": _mix(t["line"], t["dim"], 0.5) if light else t["bg"],
+        # a magnitude-varied field instead of one flat colour
+        "tints": distinct(t["bgstar"], t["star"][0], t["star_glow"],
+                          t["sat"], t["moon"], t["ring"]),
+        # nebula blobs — the theme's own accents at very low alpha. Reaching
+        # past ◑ to ✓ buys a second hue, so a cloud bank reads as depth
+        # rather than one flat accent smeared across the sky.
+        "neb": distinct(t["star_glow"], t["status"]["✓"], t["moon"],
+                        t["sat"], t["status"]["◑"])[:3],
+    }
+
+
+# How far a LIGHT theme's canvas is pulled off paper-white, toward its own
+# `line` token. 0.0 = untouched paper (glaring under a star field), 1.0 = the
+# rule colour itself. The one number to turn if the pale themes still read too
+# bright — nothing else in the sky depends on it.
+GROUND_MUTE = 0.8
+
+R0, P0 = 150, 22        # the innermost orbit — radius in px, period in seconds
+
+
 def prepare(data: dict) -> list[dict]:
     """Sort by status (active in, planned out) and compute the orbit physics."""
     doms = sorted(data["domains"],
                   key=lambda d: (STATUS_ORDER[d["status"]], d["name"]))
     for i, d in enumerate(doms):
         mass = len(d["files"])
-        # activity drives speed: more work on the domain = faster orbit
+        # `work` is the composite heat index. It is PRINTED as a number in the
+        # card, never rendered as speed: each of its inputs already owns a
+        # visual channel (mass -> size, PLANs -> satellites, status -> radius
+        # + color, recency -> comet trail), so encoding it again in motion said
+        # nothing new and actively misled — the eye reads *tangential* speed
+        # (r/period), which made a far-out ○ domain look hotter than the
+        # innermost ◑ one.
         work = 3 * len(d["plans"]) + mass
         if d["status"] == "◑":
             work *= 1.6                      # actively-worked domains run hot
         work *= 1 + max(0.0, (21 - d["age_days"]) / 21)  # touched lately = hotter
+        r = R0 + i * 42
         d.update(
-            r=150 + i * 42, ang0=(i * 137.508 + 210) % 360,
-            size=9 + min(mass, 8) * 1.6, mass=mass,
-            work=round(work, 1), period=round(max(16, 260 / (1 + work / 8))),
+            r=r, ang0=(i * 137.508 + 210) % 360,
+            size=9 + min(mass, 8) * 1.6, mass=mass, work=round(work, 1),
+            # Kepler's third law, P² ∝ a³ — so orbits never cross and the inner
+            # (active) band genuinely runs fastest. Status sets the distance;
+            # the distance alone sets the speed.
+            period=round(P0 * (r / R0) ** 1.5),
         )
     return doms
 
@@ -250,7 +335,7 @@ def cards_html(doms: list[dict], data: dict, t: dict) -> tuple[str, str]:
     counts = {s: sum(1 for d in doms if d["status"] == s) for s in "◑✓○"}
     legend = (f'<span>☀ mission</span><span>● domain (size = doc mass)</span>'
               f'<span>⊚ ring = SPEC</span><span>☾ moon = ARCHITECTURE</span>'
-              f'<span>· sats = PLANs</span><span>speed = activity</span>'
+              f'<span>· sats = PLANs</span><span>inner orbits faster (Kepler)</span>'
               f'<span style="color:{t["status"]["◑"]}">◑ active {counts["◑"]}</span>'
               f'<span style="color:{t["status"]["✓"]}">✓ stable {counts["✓"]}</span>'
               f'<span style="color:{t["status"]["○"]}">○ planned {counts["○"]}</span>')
@@ -294,6 +379,7 @@ def render_3d(data: dict, t: dict) -> str:
         "moon": t["moon"], "sat": t["sat"], "star": t["star"],
         "starGlow": t["star_glow"], "starLabel": t["star_label"],
         "status": t["status"], "grad": t["grad"], "guard": t["guard"],
+        **sky(t),
     }, ensure_ascii=False)
 
     panel, legend = cards_html(doms, data, t)
@@ -351,12 +437,27 @@ const F = 640;
 let hover = -1, dragging = false, lastX = 0, lastY = 0, moved = 0;
 let sunHit = {{ x: -999, y: -999, r: 0 }};
 
-const STARS = Array.from({{length: 260}}, (_, i) => {{
-  const a = i * 2.399963, z = 1 - 2 * ((i + .5) / 260);
-  const r = Math.sqrt(1 - z * z), R = 2600;
+// The star field: a Fibonacci sphere, but magnitude- and tint-varied, with a
+// third of it crowded into a Milky-Way band so the sky has structure instead
+// of even speckle. Deterministic by index — the same project renders the same
+// sky every time, which matters because the page is regenerated, not stored.
+const N_STARS = 420;
+const STARS = Array.from({{length: N_STARS}}, (_, i) => {{
+  const a = i * 2.399963;
+  let z = 1 - 2 * ((i + .5) / N_STARS);
+  if (i % 3 === 0) z *= .22;                       // the band
+  const r = Math.sqrt(Math.max(0, 1 - z * z)), R = 2600;
+  const mag = ((i * 2654435761) % 1000) / 1000;    // stable pseudo-magnitude
   return {{ x: R*r*Math.cos(a), y: R*z*.6, z: R*r*Math.sin(a),
-           s: .5 + (i % 3) * .45, tw: i % 7 }};
+           s: .4 + mag * mag * 1.9, tw: i % 7,
+           c: T.tints[i % T.tints.length], sp: mag > .93 }};
 }});
+// Nebulae — three distant clouds, parallaxing with the camera like the stars.
+const NEB = [
+  {{ x: -1700, y: -420, z:   900, r: 1500, c: T.neb[0] }},
+  {{ x:  1500, y:  520, z: -1100, r: 1750, c: T.neb[1] }},
+  {{ x:   200, y: -900, z: -1900, r: 1300, c: T.neb[2] }},
+];
 DOMS.forEach(d => d.ang = d.ang0 * Math.PI / 180);
 
 function project(x, y, z) {{
@@ -434,15 +535,44 @@ function frame(tms) {{
   if (!dragging) yaw += dt * 0.000045;
   ctx.clearRect(0, 0, W, H);
   const bg = ctx.createRadialGradient(W*.4, H*.45, 60, W*.4, H*.45, Math.max(W,H)*.8);
-  bg.addColorStop(0, T.bg2); bg.addColorStop(1, T.bg);
+  bg.addColorStop(0, T.ground2); bg.addColorStop(1, T.ground);
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  for (const n of NEB) {{
+    const p = project(n.x, n.y, n.z);
+    if (p.z < 120) continue;
+    const R = n.r * p.s;
+    if (R < 3) continue;
+    const g = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, R);
+    g.addColorStop(0,   n.c + (T.light ? '10' : '2b'));
+    g.addColorStop(.55, n.c + (T.light ? '07' : '12'));
+    g.addColorStop(1,   n.c + '00');
+    ctx.fillStyle = g; ctx.fillRect(p.sx - R, p.sy - R, R * 2, R * 2);
+  }}
   for (const s of STARS) {{
     const p = project(s.x, s.y, s.z);
-    ctx.globalAlpha = .12 + .25 * Math.abs(Math.sin(tms/5000 + s.tw));
-    ctx.fillStyle = T.bgstar;
-    ctx.beginPath(); ctx.arc(p.sx, p.sy, s.s, 0, Math.PI*2); ctx.fill();
+    if (p.z < 120) continue;                       // behind the camera
+    const tw = .55 + .45 * Math.sin(tms / (1500 + s.tw * 240) + s.tw);
+    ctx.globalAlpha = (T.light ? .42 : .62) * tw * (.3 + .7 * s.s / 2.3);
+    ctx.fillStyle = s.c;
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy, s.s * (T.light ? .8 : 1), 0, Math.PI*2); ctx.fill();
+    if (s.sp) {{                                   // the brightest few flare
+      ctx.globalAlpha *= T.light ? .3 : .45;
+      ctx.strokeStyle = s.c; ctx.lineWidth = .7;
+      const L = s.s * 3.6;
+      ctx.beginPath();
+      ctx.moveTo(p.sx - L, p.sy); ctx.lineTo(p.sx + L, p.sy);
+      ctx.moveTo(p.sx, p.sy - L); ctx.lineTo(p.sx, p.sy + L); ctx.stroke();
+    }}
   }}
   ctx.globalAlpha = 1;
+  // Vignette BEFORE the system is drawn: it deepens the sky without dimming
+  // the domains, which are the content.
+  const vg = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*.22,
+                                      W/2, H/2, Math.max(W,H)*.78);
+  vg.addColorStop(0, T.vig + '00');
+  vg.addColorStop(1, T.vig + (T.light ? '66' : 'bb'));
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
 
   for (const d of DOMS) {{
     ctx.strokeStyle = T.line; ctx.lineWidth = 1;
@@ -531,6 +661,11 @@ function frame(tms) {{
 requestAnimationFrame(frame);
 
 view.addEventListener('pointerdown', e => {{
+  // The HUD sits INSIDE #view. Capturing the pointer here retargets the
+  // following pointerup to #view, so the click resolves on #view and the
+  // checkbox never toggles — which is why only the keyboard used to work.
+  // Let the controls own their own clicks.
+  if (e.target.closest('#hud')) return;
   dragging = true; moved = 0; lastX = e.clientX; lastY = e.clientY;
   view.classList.add('dragging'); view.setPointerCapture(e.pointerId);
 }});

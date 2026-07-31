@@ -92,6 +92,21 @@ def doc_href(rel) -> str:
 STATUS_CLASS = {"◑": "st-a", "✓": "st-s", "○": "st-p"}
 
 
+def present(exists: bool, rel: str, label: str = "") -> str:
+    """A presence cell under an already-labelled column (SPEC / ARCH).
+
+    The column header states WHICH doc, so the cell only has to answer whether
+    it exists — and then be useful about it. Earlier this rendered the Orbit 3D
+    metaphor glyphs (ring = SPEC, moon = ARCHITECTURE), which earn their keep on
+    the star map but in a table were two symbols to memorise that both just meant
+    "yes". Now: a present doc is a check that OPENS it; an absent one is a dash."""
+    if not exists:
+        return '<span class="absent" title="not present">&mdash;</span>'
+    tip = f"open {label}" if label else "open"
+    return (f'<a class="has" href="{doc_href(rel)}" target="_blank" '
+            f'title="{esc(tip)}">&#10003;</a>')
+
+
 def drift_card(findings) -> str:
     """The /triage view of this one project, inline where you look first.
     findings=None means the checkers couldn't run — said so, never shown green."""
@@ -135,11 +150,14 @@ def overview_html(facts: dict, project_path: Path, findings) -> str:
     for d in sorted(facts["domains"], key=lambda x: ({"◑": 0, "✓": 1, "○": 2}[x["status"]], x["name"])):
         touched = ("today" if d["age_days"] < 1 else
                    f'{d["age_days"]:.0f}d' if d["age_days"] < 900 else "—")
+        spec_cell = present(d["spec"], f'.gravity/{d["name"]}/SPEC.md', "SPEC.md")
+        arch_cell = present(d["arch"], f'.gravity/{d["name"]}/ARCHITECTURE.html',
+                            "ARCHITECTURE.html")
         rows.append(
             f'<tr><td><code>{esc(d["name"])}</code></td>'
-            f'<td><span class="dot {STATUS_CLASS[d["status"]]}"></span>'
-            f'{d["status"]} {STATUS_LABEL[d["status"]]}</td>'
-            f'<td>{"⊚" if d["spec"] else "—"}</td><td>{"☾" if d["arch"] else "—"}</td>'
+            f'<td><span class="sg {STATUS_CLASS[d["status"]]}">{d["status"]}</span>'
+            f'{STATUS_LABEL[d["status"]]}</td>'
+            f'<td>{spec_cell}</td><td>{arch_cell}</td>'
             f'<td>{len(d["plans"]) or "—"}</td><td>{touched}</td>'
             f'<td class="why">{esc(trunc(d["why"], 90)) or "<em>no MISSION row</em>"}</td></tr>')
 
@@ -157,7 +175,7 @@ def overview_html(facts: dict, project_path: Path, findings) -> str:
             mref = (f' <span class="dimc">(→ MISSION {esc(tr["mission"])})</span>'
                     if tr["mission"] else ' <span class="wt">(no MISSION § pointer)</span>')
             trows.append(f'<div class="okv"><b>⟡ {esc(tr["name"])}</b> '
-                         f'<span class="dot {STATUS_CLASS.get(st, "st-a")}"></span>{st} — '
+                         f'<span class="sg {STATUS_CLASS.get(st, "st-a")}">{st}</span>— '
                          f'{esc(trunc(tr["direction"], 140))}{mref} · {chips}{warn}</div>')
         tracks_card = (f'<div class="ocard"><div class="ohead">tracks — the direction axis '
                        f'({len(facts["tracks"])} of ≤3)</div>' + "".join(trows) + '</div>')
@@ -183,6 +201,50 @@ def overview_html(facts: dict, project_path: Path, findings) -> str:
 </div>"""
 
 
+def verdict(c: dict, run: dict | None) -> str:
+    """One plain-English sentence per domain: what actually protects it.
+
+    The cards state the metrics honestly but leave the reader to assemble the
+    meaning; this says it outright, so a human engineer gets the takeaway
+    without learning the tag vocabulary first. Deliberately literal — it only
+    restates the scanned facts in a sentence, never grades or advises."""
+    d = f'<code>{esc(c["domain"])}</code>'
+    if not c["has_spec"]:
+        return (f'<div class="vd vneutral">Nothing fences {d}: an agent changing it has no '
+                'written contract to break. Fine for a read-only domain &mdash; a risk for one '
+                'agents actually change.</div>')
+    r = c["rules"]
+    if not r["total"]:
+        return (f'<div class="vd vwarn">{d} has a SPEC but no parsed rules, so there is nothing '
+                'to enforce or review &mdash; the sheet exists but says nothing checkable.</div>')
+    w = r["wall"]
+    teeth = (f'<b>{w}</b> machine-checked rule{"s" if w != 1 else ""}' if w
+             else "<b>no</b> machine-checked rules")
+    human = r["judgment"] + r["guidance"]
+    rest = (f' and {human} that rely on a human reading the SPEC' if human else "")
+    if not c["gate"]:
+        return (f'<div class="vd vwarn">An agent changing {d} meets {teeth}{rest} &mdash; but '
+                '<b>no gate</b>, so nothing can prove the change was safe.</div>')
+    if run is None:
+        return (f'<div class="vd vneutral">An agent changing {d} meets {teeth}{rest}, behind a '
+                'gate that has <b>never been run</b> here &mdash; so its walls are named, not '
+                'demonstrated.</div>')
+    state = run.get("state")
+    age = (f'{run["age_days"]:.0f}d ago' if run.get("age_days") and run["age_days"] >= 1
+           else "just now")
+    if state == "green":
+        stale = (" &mdash; though that run <b>predates the current code</b>"
+                 if run.get("stale") else "")
+        return (f'<div class="vd vok">An agent changing {d} meets {teeth}{rest}, and its gate '
+                f'<b>passed {age}</b>{stale}.</div>')
+    if state == "red":
+        return (f'<div class="vd vbad">{d} has {teeth}{rest}, but its gate was <b>RED</b> as of '
+                f'{age} &mdash; the walls are declared and currently failing.</div>')
+    return (f'<div class="vd vneutral">{d} has {teeth}{rest}; its gate <b>could not run</b> '
+            f'({esc(str(state))}, {age}), so it proved nothing either way &mdash; not a '
+            'failure, an unknown.</div>')
+
+
 def spec_health_html(facts: dict) -> str:
     status_of = {d["name"]: d["status"] for d in facts["domains"]}
     census = facts["specs"]
@@ -193,10 +255,66 @@ def spec_health_html(facts: dict) -> str:
     bc_unbound = sum(c["bc_unbound"] for c in fenced)
     pct = f"{100 * walls / total:.0f}%" if total else "—"
 
+    gated = [c for c in fenced if c["gate"]]
+    runs = facts.get("gates", {})
+    tally = {s: sum(1 for c in gated if runs.get(c["domain"], {}).get("state") == s)
+             for s in ("green", "red", "blocked", "timeout")}
+    never = sum(1 for c in gated if c["domain"] not in runs)
+    proof_bits = [f'<b class="okc">{tally["green"]} green</b>' if tally["green"] else "",
+                  f'<b class="wt">{tally["red"]} RED</b>' if tally["red"] else "",
+                  f'<span class="satc">{tally["blocked"] + tally["timeout"]} blocked</span>'
+                  if tally["blocked"] + tally["timeout"] else "",
+                  f'<span class="dimc">{never} never run</span>' if never else ""]
+    proof_sum = (" · proof: " + " / ".join(b for b in proof_bits if b)) if gated else ""
+
+    # The four rungs, as a chain. Each is a fraction of the PREVIOUS rung's
+    # population, because that is what makes them a chain rather than four
+    # unrelated percentages: rules only matter in a fenced domain, a gate only
+    # matters where rules have teeth, and passing only matters where a gate
+    # exists. The weakest rung is where an agent's mistake actually gets through.
+    n_dom, n_fenced, n_gated = len(census), len(fenced), len(gated)
+    n_green = tally["green"]
+    RUNGS = [
+        ("fenced", n_fenced, n_dom, "domains carry a SPEC",
+         "an unfenced domain has no written contract to break"),
+        ("rules have teeth", walls, total, "rules are machine-checkable",
+         "the rest rely on a human reading the SPEC"),
+        ("gate exists", n_gated, n_fenced, "fenced domains name a proving command",
+         "without one, nothing can prove a change"),
+        ("gate passes", n_green, n_gated, "gates are green right now",
+         "a named test that fails proves nothing"),
+    ]
+    # A rung with no denominator is VACUOUS, not failing: "gates are green" says
+    # nothing when no gate exists. Those are excluded from the weakest-link search
+    # and drawn neutral — the empty-bar-in-alarm-colour it used to render read as
+    # a failure the project had not actually earned.
+    scored = [(v / d, i) for i, (_, v, d, _, _) in enumerate(RUNGS) if d]
+    # Ties go to the LOWER rung on purpose: the rungs are a chain, so the earliest
+    # break is the one worth fixing first (a gate over toothless rules proves less).
+    weakest = min(scored)[1] if scored else -1
+    rungs = []
+    for i, (name, val, den, what, why) in enumerate(RUNGS):
+        if not den:
+            cls, ratio, pctxt, mark = "rvac", 0.0, "—", ""
+            why = "nothing to measure yet — no gate exists to pass"
+        else:
+            ratio = val / den
+            cls = ("rgood" if ratio >= 0.999 else "rmid" if ratio >= 0.5 else "rweak")
+            pctxt = f"{val}/{den}"
+            mark = (' <span class="rflag">weakest link</span>'
+                    if i == weakest and ratio < 0.999 else "")
+        rungs.append(
+            f'<div class="rung {cls}"><span class="rn">{i + 1}</span>'
+            f'<span class="rname">{name}</span>'
+            f'<span class="rbar"><span class="rfill" style="width:{ratio * 100:.0f}%"></span></span>'
+            f'<span class="rval">{pctxt}</span>'
+            f'<span class="rwhat">{what}{mark}<span class="rwhy">{why}</span></span></div>')
+
     cards = []
     for c in sorted(census, key=lambda x: (not x["has_spec"], x["domain"])):
         st = status_of.get(c["domain"], "○")
-        head = (f'<div class="ohead"><span class="dot {STATUS_CLASS[st]}"></span>'
+        head = (f'<div class="ohead"><span class="sg {STATUS_CLASS[st]}" '
+                f'title="{esc(STATUS_LABEL[st])}">{st}</span>'
                 f'<code>{esc(c["domain"])}</code>'
                 + ('<span class="formtag">freeform</span>' if c["has_spec"] and c["form"] == "freeform" else "")
                 + '</div>')
@@ -220,7 +338,31 @@ def spec_health_html(facts: dict) -> str:
                    + '</div>')
         else:
             bar = '<div class="okv wt">SPEC exists but zero rules found</div>'
-        gate = (f'<div class="okv gate">gate — <span class="mono">{esc(trunc(c["gate"], 90))}</span></div>'
+        # Proof freshness — the one thing the tags/contract can't say. Every
+        # other signal here proves a test is NAMED; this is whether it PASSES.
+        # "blocked" is kept distinct from "red" on purpose: a gate that could
+        # not reach its server proved nothing, and calling that a failure would
+        # be worse than saying nothing.
+        run = facts.get("gates", {}).get(c["domain"])
+        proof = ""
+        if c["gate"]:
+            if not run:
+                proof = ('<span class="pchip pnone" title="run_gate.py --all">'
+                         'never run</span>')
+            else:
+                cls, label = {
+                    "green": ("pok", "green"), "red": ("pbad", "RED"),
+                    "blocked": ("pwarn", "blocked"),
+                    "timeout": ("pwarn", "timed out"),
+                }.get(run["state"], ("pnone", run["state"]))
+                age = (f'{run["age_days"]:.0f}d ago' if run["age_days"] and run["age_days"] >= 1
+                       else "just now")
+                stale = (' <b>· predates HEAD</b>' if run["stale"] else "")
+                tip = esc(trunc(run["tail"].replace("\n", " ⏎ "), 300)) if run["tail"] else ""
+                proof = (f'<span class="pchip {cls}" title="{tip}">{label}'
+                         f' · {age}{stale}</span>')
+        gate = (f'<div class="okv gate">gate — <span class="mono">{esc(trunc(c["gate"], 90))}</span>'
+                f'{proof}</div>'
                 if c["gate"] else
                 '<div class="okv wt">no Gate line — nothing proves a change here</div>')
         bc = ""
@@ -231,15 +373,27 @@ def spec_health_html(facts: dict) -> str:
                   f'{c["bc_bound"]} test-bound</b>{unb}</div>')
         fills = (f'<div class="okv wt">⚠ {c["fills"]} template '
                  f'FILL leftover{"s" if c["fills"] != 1 else ""}</div>' if c["fills"] else "")
-        cards.append(f'<div class="hcard">{head}{bar}{gate}{bc}{fills}</div>')
+        cards.append(f'<div class="hcard">{head}{bar}{gate}{bc}{fills}'
+                     f'{verdict(c, facts.get("gates", {}).get(c["domain"]))}</div>')
 
     return f"""<div class="pad">
-  <div class="hsum"><b>{len(fenced)}</b>/<b>{len(census)}</b> domains fenced ·
-    <b>{total}</b> rules, <b class="okc">{walls} walls</b> ({pct}) ·
-    behavioral contract <b class="okc">{bc_bound} test-bound</b>{f' / <b class="wt">{bc_unbound} unbound</b>' if bc_unbound else ""}</div>
-  <div class="hint">A <b>wall</b> is a rule tooling enforces ([lint]/[type]/[test:…]);
-    judgment ([review]) and guidance ([—]) rely on humans. Low wall-share isn't shame —
-    it's the honest map of where the contract can lie. Promote rules by giving them tests.</div>
+  <div class="hq">If an agent changes a domain tomorrow, <b>what catches a mistake</b> —
+    and is that catcher <b>passing today</b>?</div>
+  <div class="ladder">{"".join(rungs)}</div>
+  <div class="hint">The four rungs are a <b>chain</b>: a gate proves nothing if the rules have
+    no teeth, and a wall proves nothing if its gate is red. Your weakest rung is where an
+    agent's mistake would actually get through — that is the number to move, not the
+    percentage.<br>
+    A <b>wall</b> is a rule tooling enforces (<span class="mono">[lint]</span>/<span
+    class="mono">[type]</span>/<span class="mono">[test:…]</span>); <b>judgment</b> (<span
+    class="mono">[review]</span>) and <b>guidance</b> (<span class="mono">[—]</span>) rely on a
+    human reading the SPEC. A low wall share <i>isn't shame</i> — it is the honest map of where
+    the contract can lie, and some domains (read-only ones) deserve no walls at all.<br>
+    Rungs 1–3 only prove a test is <i>named</i>. Rung 4 is whether it <i>passes</i>, recorded by
+    <span class="mono">run_gate.py --all</span> — hover a proof chip for the captured output.
+    <b>blocked</b> is deliberately not <b>RED</b>: a gate that couldn't reach its server or
+    fixture proved nothing either way, and calling that a failure would be worse than saying
+    nothing.</div>
   <div class="hgrid">{"".join(cards)}</div>
 </div>"""
 
@@ -272,8 +426,8 @@ def queue_html(facts: dict, project_path: Path) -> str:
     for p in sorted(q, key=lambda x: (QUEUE_ORDER[x["status"]], x["age_days"])):
         href = doc_href(p["rel"])
         if p["status"]:
-            st = (f'<span class="dot {STATUS_CLASS[p["status"]]}"></span>'
-                  f'{p["status"]} {STATUS_LABEL[p["status"]]}')
+            st = (f'<span class="sg {STATUS_CLASS[p["status"]]}">{p["status"]}</span>'
+                  f'{STATUS_LABEL[p["status"]]}')
         else:
             st = '<span class="wt">no Status: line</span>'
         nxt = p["next"] or p["note"]
@@ -362,7 +516,7 @@ def graduation_html(facts: dict) -> str:
                 txt = esc(trunc(s["text"], 150))
                 if s["match"] is not None and s["test"]:
                     n_grad += 1
-                    rows.append(f'<div class="gline"><b class="okc">✔</b> {txt} '
+                    rows.append(f'<div class="gline"><b class="okc">✓</b> {txt} '
                                 f'<span class="gtest okc mono">[test:{esc(trunc(s["test"], 60))}]</span></div>')
                 elif s["match"] is not None:
                     n_reword += 1
@@ -385,7 +539,7 @@ def graduation_html(facts: dict) -> str:
                 txt = esc(trunc(b["text"], 150))
                 if b["test"]:
                     n_bound += 1
-                    rows.append(f'<div class="gline"><b class="okc">✔</b> <span class="dimc">{txt}</span> '
+                    rows.append(f'<div class="gline"><b class="okc">✓</b> <span class="dimc">{txt}</span> '
                                 f'<span class="gtest dimc mono">[test:{esc(trunc(b["test"], 60))}]</span></div>')
                 else:
                     n_unbound += 1
@@ -393,8 +547,8 @@ def graduation_html(facts: dict) -> str:
                                 '<span class="gtest wt">unbound — contract line with no test</span></div>')
         n_bound += sum(1 for b in d["bc"] if b["matched"] and b["test"])
         cards.append(f'<div class="ocard"><div class="ohead">'
-                     f'<span class="dot {STATUS_CLASS[st]}"></span>'
-                     f'<code>{esc(d["domain"])}</code></div>{"".join(rows)}</div>')
+                     f'<span class="sg {STATUS_CLASS[st]}" title="{esc(STATUS_LABEL[st])}">'
+                     f'{st}</span><code>{esc(d["domain"])}</code></div>{"".join(rows)}</div>')
 
     warn = ""
     if n_reword or n_shipped_intent or n_unbound:
@@ -519,9 +673,53 @@ def render_page(facts: dict, theme: str, project_path: Path, findings) -> str:
   .onext {{ font-size:13px; margin-top:6px }}
   .olbl {{ font-size:10.5px; letter-spacing:1px; text-transform:uppercase;
     color:var(--accent); margin-right:8px }}
-  .dot {{ width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:6px }}
-  .st-a {{ background:var(--accent) }} .st-s {{ background:var(--ok) }}
-  .st-p {{ background:var(--plan) }}
+  /* One status mark, not three. The glyph carries BOTH shape and colour, so the
+     separate colour dot it replaced is redundant where a glyph follows — and is an
+     upgrade where the dot stood alone (a bare colour is the one encoding a
+     colour-blind reader cannot resolve). Glyphs match the PLAN files verbatim. */
+  /* Spec Health: the question, then the four rungs as a chain. The rungs are
+     nested fractions (rules only count inside fenced domains, passing only
+     inside gated ones), which is what makes them a ladder and not four
+     unrelated percentages. */
+  .hq {{ font-size:14px; color:var(--ink); margin:2px 0 12px; line-height:1.5 }}
+  .ladder {{ display:flex; flex-direction:column; gap:4px; margin-bottom:14px }}
+  .rung {{ display:grid; grid-template-columns:20px 130px 1fr 54px 2.1fr; gap:10px;
+    align-items:center; padding:6px 10px; border:1px solid var(--line);
+    border-radius:7px; background:var(--card); font-size:11.5px }}
+  .rung .rn {{ font-family:var(--mono,monospace); color:var(--dim); text-align:center }}
+  .rung .rname {{ color:var(--ink); font-weight:600 }}
+  .rbar {{ height:6px; border-radius:3px; background:var(--line); overflow:hidden }}
+  .rfill {{ display:block; height:100%; background:var(--dim) }}
+  .rgood .rfill {{ background:var(--ok) }}
+  .rmid .rfill {{ background:var(--accent) }}
+  .rweak .rfill {{ background:var(--guard) }}
+  .rweak {{ border-color:var(--guard) }}
+  .rvac {{ opacity:.55 }} .rvac .rbar {{ background:transparent; border:1px dashed var(--line) }}
+  .rung .rval {{ font-family:var(--mono,monospace); color:var(--ink); text-align:right }}
+  .rung .rwhat {{ color:var(--dim) }}
+  .rung .rwhy {{ display:block; opacity:.72; font-size:10.5px }}
+  .rflag {{ color:var(--guard); font-weight:700; margin-left:6px }}
+  /* the per-domain takeaway — the sentence a human reads instead of assembling
+     the metrics above it themselves */
+  .vd {{ margin-top:7px; padding:7px 10px; border-radius:7px; font-size:11.5px;
+    line-height:1.5; border-left:3px solid var(--line); background:var(--bg2) }}
+  .vok {{ border-left-color:var(--ok) }}
+  .vbad {{ border-left-color:var(--guard) }}
+  .vwarn {{ border-left-color:var(--accent) }}
+  .vneutral {{ border-left-color:var(--dim) }}
+  .sg {{ font-weight:700; margin-right:6px; font-style:normal }}
+  .st-a {{ color:var(--accent) }} .st-s {{ color:var(--ok) }}
+  .st-p {{ color:var(--plan) }}
+  /* The mark legend. The page carries a small symbol vocabulary across four
+     tabs and used to explain none of it; one strip beats memorising glyphs. */
+  .legend {{ display:flex; flex-wrap:wrap; gap:13px; align-items:center;
+    padding:7px 20px; border-bottom:1px solid var(--line); background:var(--panel);
+    font-size:11px; color:var(--dim) }}
+  .legend b {{ color:var(--ink); font-weight:600 }}
+  .legend .sep {{ width:1px; height:11px; background:var(--line); display:inline-block }}
+  .has {{ color:var(--ok); font-weight:700; text-decoration:none }}
+  .has:hover {{ text-decoration:underline }}
+  .absent {{ color:var(--dim); opacity:.5 }}
   table.spine {{ border-collapse:collapse; width:100%; font-size:12.5px }}
   table.spine th {{ text-align:left; color:var(--dim); font-weight:600; font-size:11px;
     letter-spacing:.6px; text-transform:uppercase; padding:4px 10px 6px 0 }}
@@ -538,6 +736,14 @@ def render_page(facts: dict, theme: str, project_path: Path, findings) -> str:
   .hcard {{ border:1px solid var(--line); border-radius:12px; background:var(--card);
     padding:12px 14px }}
   .hcard.nospec {{ border-style:dashed; opacity:.75 }}
+  /* proof-freshness chip — the recorded outcome of the gate, not its name.
+     Hover shows the captured output tail, so a misread is always auditable. */
+  .pchip {{ margin-left:8px; font-size:10.5px; padding:2px 7px; border-radius:20px;
+    border:1px solid currentColor; white-space:nowrap; cursor:help }}
+  .pchip.pok   {{ color:var(--ok) }}
+  .pchip.pbad  {{ color:var(--guard); font-weight:700 }}
+  .pchip.pwarn {{ color:var(--sat) }}
+  .pchip.pnone {{ color:var(--dim); border-style:dashed }}
   .formtag {{ font-size:10px; letter-spacing:1px; color:var(--sat);
     border:1px solid var(--line); border-radius:8px; padding:1px 7px }}
   .bar {{ display:flex; height:8px; border-radius:4px; overflow:hidden; margin:4px 0 6px }}
@@ -585,6 +791,17 @@ def render_page(facts: dict, theme: str, project_path: Path, findings) -> str:
   <button data-tab="timeline">Timeline</button>
   <button data-tab="orbit">Orbit 3D</button>
 </nav>
+<div class="legend" aria-label="what the marks mean">
+  <span><span class="sg st-a">◑</span>active</span>
+  <span><span class="sg st-s">✓</span>stable</span>
+  <span><span class="sg st-p">○</span>planned</span>
+  <span class="sep"></span>
+  <span><span class="has">✓</span> present &mdash; click to open</span>
+  <span><span class="absent">&mdash;</span> absent</span>
+  <span class="sep"></span>
+  <span><b class="satc">⟡</b> carried by a track</span>
+  <span><b class="wt">⚠</b> needs attention</span>
+</div>
 <main>
   <div class="tab scroll on" id="tab-overview">{overview_html(facts, project_path, findings)}</div>
   <div class="tab scroll" id="tab-queue">{queue_html(facts, project_path)}</div>

@@ -27,6 +27,8 @@ Checks exported here:
   check_gravity_consistency(project) — domain <-> four-index wiring, protocol
                                        card freshness, couplings, the comet rule
   check_spec_honesty(project)        — SPEC Gate/enforcement tags vs repo reality
+  check_arch_paths(project)          — authored ARCHITECTURE.html diagram nodes
+                                       still name files that exist
   check_intake(project)              — intake-sheet honesty (docs/intake/*.md)
   check_given(project)               — given-layer honesty (inbox routed, manifested)
 
@@ -122,7 +124,7 @@ class Finding:
     severity: str   # FAIL | WARN
     code: str       # UNDERWIRED | ORPHAN_ROUTE | MISSING_FILE | INDEX_ABSENT | STRUCTURE
                     # | PROTOCOL_MISSING | PROTOCOL_STALE | COUPLING_UNCONTRACTED
-                    # | SLICE_STALE | LIB_MISSING | LIB_STALE
+                    # | SLICE_STALE | LIB_MISSING | LIB_STALE | ARCH_PATH_DEAD
     domain: str     # the slug it concerns ("" if structural)
     region: str     # which index/region ("" if n/a)
     message: str
@@ -620,6 +622,103 @@ def check_spec_honesty(project_dir: str | Path) -> list[Finding]:
 
     return findings
 # ---------------------------------------------------------------------------
+# authored architecture pages — .gravity/**/ARCHITECTURE.html
+#
+# ARCHITECTURE.html is the one *authored* diagram surface: unlike the
+# observatory (generated, git-ignored, regenerated per scan) it is committed and
+# maintained by a human, so nothing regenerates it when the code moves under it.
+# The grid cells and trace nodes in ARCHITECTURE.template.html /
+# ARCHITECTURE.domain.template.html each carry a `data-path="…"` anchor naming
+# the file that node stands for; this check asserts those files still exist.
+#
+# Deliberately narrow — it catches a *moved or deleted file*, the commonest and
+# dumbest form of diagram rot. It cannot tell you an arrow is now wrong, or that
+# a branch was added and never drawn. Wrong arrows need a human; the page says
+# which is which rather than implying the whole diagram is verified.
+#
+# Under-claiming, three ways: the anchor is **opt-in** (a page with no
+# `data-path` is silent, never nagged into migrating), unresolvable values are
+# skipped rather than guessed, and the severity is WARN — a dead Gate breaks the
+# change loop, a dead diagram path only misleads a reader, and putting every doc
+# page on the critical path of every refactor would earn exactly the reflexive
+# ignoring that makes a checker useless.
+
+_ARCH_ANCHOR_RE = re.compile(r'data-path="([^"]*)"')
+
+
+def _arch_pages(gravity: Path) -> list[Path]:
+    """Every authored ARCHITECTURE.html: the cross-cutting one plus one per
+    domain folder. Generated output (observatory/) and the installed lib are
+    never authored, so they're out of scope by construction."""
+    pages: list[Path] = []
+    top = gravity / "ARCHITECTURE.html"
+    if top.is_file():
+        pages.append(top)
+    for sub in sorted(p for p in gravity.iterdir() if p.is_dir()):
+        if sub.name in NON_DOMAIN_DIRS or sub.name.startswith("."):
+            continue
+        page = sub / "ARCHITECTURE.html"
+        if page.is_file():
+            pages.append(page)
+    return pages
+
+
+def _arch_anchor_targets(value: str) -> list[str]:
+    """The checkable path tokens inside one `data-path` value.
+
+    Authors separate multiple files with `·`/`,`; a token may carry a `:123`
+    line suffix (kept in the doc for navigation, dropped for the existence
+    test). Anything we cannot resolve to a literal path is **skipped, not
+    guessed**: globs (`chat/providers/*`), stencil placeholders, prose, and
+    bare words with neither a separator nor an extension (`.env`-style prose
+    like "provider base URL from ...").
+    """
+    targets: list[str] = []
+    for raw in re.split(r"[·,]|&middot;", value):
+        token = re.sub(r"<[^>]+>", "", raw).strip().strip("`").strip()
+        token = re.sub(r":\d+(?:-\d+)?$", "", token)        # drop :line / :a-b
+        if not token or "FILL" in token or "*" in token or "?" in token:
+            continue
+        if "/" not in token and "." not in token:           # not path-shaped
+            continue
+        if re.search(r"\s", token):                         # prose, not a path
+            continue
+        targets.append(token)
+    return targets
+
+
+def check_arch_paths(project_dir: str | Path) -> list[Finding]:
+    """Verify every `data-path` anchor in an authored ARCHITECTURE.html still
+    resolves to a real file or directory. Empty list == every anchored node
+    still points at something that exists (or the pages carry no anchors)."""
+    project = Path(project_dir)
+    gravity = project / ".gravity"
+    if not gravity.is_dir():
+        return [Finding(FAIL, "STRUCTURE", "", "",
+                        f"no .gravity/ directory at {project}")]
+
+    _, ws_dirs = _npm_reality(project)
+    findings: list[Finding] = []
+
+    for page in _arch_pages(gravity):
+        # "" for the cross-cutting page, the folder name for a domain page.
+        slug = "" if page.parent == gravity else page.parent.name
+        rel = page.relative_to(project).as_posix()
+        seen: set[str] = set()
+        for value in _ARCH_ANCHOR_RE.findall(_read(page)):
+            for token in _arch_anchor_targets(value):
+                if token in seen:                   # one node, one complaint
+                    continue
+                seen.add(token)
+                if not _path_exists_anywhere(project, ws_dirs, token):
+                    findings.append(Finding(
+                        WARN, "ARCH_PATH_DEAD", slug, "",
+                        f"{rel} anchors a node to `{token}`, which no longer "
+                        "exists — the diagram outlived the file it names"))
+    return findings
+
+
+# ---------------------------------------------------------------------------
 # intake sheets — docs/intake/*.md (the /intake command's output)
 
 INTAKE_FIELDS = ("Reporter", "Observed", "Expected", "Repro", "Env", "Evidence")
@@ -750,6 +849,7 @@ def check_given(project_dir: str | Path) -> list[Finding]:
 CHECKS = {
     "consistency": check_gravity_consistency,
     "spec": check_spec_honesty,
+    "arch": check_arch_paths,
     "intake": check_intake,
     "given": check_given,
 }

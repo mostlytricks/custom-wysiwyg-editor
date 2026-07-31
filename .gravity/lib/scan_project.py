@@ -671,6 +671,39 @@ def scan_context(project: Path, today: date | None = None) -> dict:
             "next_step": trunc(next_step, 240), "lines": len(text.splitlines())}
 
 
+def scan_gate_runs(project: Path) -> dict:
+    """The recorded outcome of each domain's Gate — freshness of proof.
+
+    Written by `run_gate.py --all` into the self-ignoring
+    `.gravity/observatory/gates.json`; generated, never authored, because "does
+    it pass right now" changes at test-run rate — faster than the fastest doc
+    rate (CONTEXT.md's per-session), so a typed version would lie between
+    commits. Absent file, absent domain, or unreadable JSON all mean *never
+    run*, which is a normal state and not an error.
+
+    `stale` means the run predates HEAD: the proof is older than the code it
+    claims to prove. It is only ever claimed when both timestamps are known —
+    no git, no staleness judgement (unknown is not stale).
+    """
+    try:
+        raw = json.loads((project / ".gravity" / "observatory" / "gates.json")
+                         .read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    head_at, now = raw.get("head_at"), time.time()
+    out = {}
+    for domain, r in (raw.get("runs") or {}).items():
+        at = r.get("at") or 0
+        out[domain] = {
+            "state": r.get("state", "unknown"), "exit": r.get("exit"),
+            "secs": r.get("secs"), "at": at, "cmd": r.get("cmd", ""),
+            "tail": r.get("tail", ""),
+            "age_days": round(max(0.0, (now - at) / 86400), 1) if at else None,
+            "stale": bool(head_at and at and at < head_at),
+        }
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Everything — the observatory's input.
 # ---------------------------------------------------------------------------
@@ -678,6 +711,7 @@ def scan(project: Path) -> dict:
     facts = scan_domains(project)                       # exits if no .gravity
     facts["integration"] = scan_integration(project)
     facts["specs"] = scan_spec_census(project)
+    facts["gates"] = scan_gate_runs(project)
     facts["links"] = scan_couplings(project)
     facts["scenarios"] = scan_scenarios(project)
     facts["queue"] = scan_plans(project)
