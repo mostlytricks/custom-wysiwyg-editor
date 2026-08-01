@@ -712,6 +712,13 @@ function show(id) {{
 # CLI
 # ---------------------------------------------------------------------------
 def main() -> None:
+    # CLI-only guard: --list-themes prints status glyphs a cp949 console can't
+    # encode. The observatory import path is unaffected (its host reconfigures).
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser(description="Render a project's .gravity/ as a star system.")
     ap.add_argument("project", nargs="?", help="project path, or a name/alias when run from the workspace (default: the project this lib belongs to)")
     ap.add_argument("--theme", choices=sorted(THEMES), default="aurora")
