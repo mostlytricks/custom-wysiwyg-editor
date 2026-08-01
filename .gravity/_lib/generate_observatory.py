@@ -606,8 +606,12 @@ def render_page(facts: dict, theme: str, project_path: Path, findings) -> str:
     fenced = sum(1 for c in facts["specs"] if c["has_spec"])
 
     theme_css = "\n  ".join(theme_vars(n, t) for n, t in THEMES.items())
+    # pill + gradient swatch — the same button idiom the dashboard and the doc
+    # theme draw, so the switcher reads identically on every themed surface.
+    # (Look only: each theme's own star family supplies the two gradient stops.)
     swatches = "".join(
-        f'<button data-th="{n}" title="{n}" style="background:{t["star"][1]}"></button>'
+        f'<button data-th="{n}" title="{n}"><span class="sw" style="background:'
+        f'linear-gradient(135deg,{t["star"][1]},{t["star"][2]})"></span>{n.capitalize()}</button>'
         for n, t in THEMES.items())
 
     # attention badges — a count chip only where something wants a look:
@@ -645,11 +649,15 @@ def render_page(facts: dict, theme: str, project_path: Path, findings) -> str:
   header {{ display:flex; align-items:baseline; gap:14px; padding:12px 20px 0 }}
   header h1 {{ font-size:16px; margin:0 }}
   header .census {{ color:var(--dim); font-size:12px; flex:1 }}
-  #themebar {{ display:flex; gap:6px; align-self:center }}
-  #themebar button {{ width:22px; height:22px; border-radius:50%; cursor:pointer;
-    border:2px solid transparent; padding:0 }}
-  #themebar button.on {{ border-color:var(--ink) }}
-  #themebar button:hover {{ transform:scale(1.15) }}
+  #themebar {{ display:flex; flex-wrap:wrap; gap:6px; align-self:center }}
+  #themebar button {{ font:600 11px/1 "Segoe UI",system-ui,sans-serif; letter-spacing:.3px;
+    cursor:pointer; color:var(--dim); background:var(--panel); border:1px solid var(--line);
+    border-radius:999px; padding:6px 11px 6px 8px; display:inline-flex; align-items:center;
+    gap:6px; transition:color .2s, border-color .2s, transform .2s }}
+  #themebar button:hover {{ color:var(--ink); transform:translateY(-1px) }}
+  #themebar button.on {{ color:var(--ink); border-color:var(--accent) }}
+  #themebar .sw {{ width:11px; height:11px; border-radius:50%;
+    box-shadow:0 0 0 1px rgba(0,0,0,.18) inset }}
   nav {{ display:flex; gap:4px; padding:8px 20px 0; border-bottom:1px solid var(--line) }}
   nav button {{ background:none; border:1px solid transparent; border-bottom:none;
     color:var(--dim); font:600 13px "Segoe UI",system-ui,sans-serif; padding:7px 16px;

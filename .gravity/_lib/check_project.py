@@ -99,15 +99,17 @@ CROSS_CUTTING = {
 
 # Top-level .gravity/ DIRECTORIES that are never subject domains — they must not
 # be index-wired or they FAIL as UNDERWIRED. The v4 rule: a leading `_` marks
-# gravity machinery/evidence doors, never a domain. Two kinds:
+# gravity machinery/evidence doors, never a domain. Three kinds:
 #   evidence doors  (workspace CLAUDE.md §6: the git-ignored intake drop zone and
 #                    the cross-cutting given layer) — check_given owns their health
 #   machinery       — the installed protocol lib (.gravity/_lib/) and its generated
 #                     output (.gravity/_observatory/): tooling, not documented subjects
+#   the plan sheet  — .gravity/_roadmap/ (URD-derived chunks + dated analyses):
+#                     authored and committed, but still never a domain
 # The pre-v4 bare names stay in the set so an unmigrated project is never misread
 # as having domains named `lib`/`inbox` — check_protocol WARNs on them instead.
 # scan_project.py holds the same set for the instruments.
-NON_DOMAIN_DIRS = {"_inbox", "_given", "_lib", "_observatory",
+NON_DOMAIN_DIRS = {"_inbox", "_given", "_lib", "_observatory", "_roadmap",
                    "inbox", "given", "lib", "observatory"}
 
 # The pre-v4 -> v4 machinery rename map (gravity 4.0.0): old bare name -> sigiled.
@@ -905,7 +907,7 @@ def main(argv=None) -> int:
                     help="project path, or a name/alias when run from the "
                          "workspace (default: the project this lib belongs to)")
     ap.add_argument("--only", choices=sorted(CHECKS), action="append",
-                    help="run just this check (repeatable; default: all four)")
+                    help="run just this check (repeatable; default: all of them)")
     args = ap.parse_args(argv)
 
     name, path = resolve_target(args.project)

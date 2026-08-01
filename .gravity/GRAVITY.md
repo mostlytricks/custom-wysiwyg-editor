@@ -1,8 +1,10 @@
-> **gravity protocol · v4.0** — copied from the workspace `gravity/GRAVITY-PROTOCOL.md`; never hand-edit. On a gravity upgrade, re-copy from the workspace (`/triage` flags a stale card).
+> **gravity protocol · v4.2** — copied from the workspace `gravity/GRAVITY-PROTOCOL.md`; never hand-edit. On a gravity upgrade, re-copy from the workspace (`/triage` flags a stale card).
 
 # The gravity protocol (project-side)
 
-This project organizes its documentation with **gravity**. Two files auto-load from the project root — `CLAUDE.md` (identity, *how*) and `CONTEXT.md` (*now*) — and everything else lives under `.gravity/`, grouped **by subject domain**, not by doc-type. Gravity owns only the **fenced `<!-- gravity:router -->` block** in the root harness files (`CLAUDE.md`, `AGENTS.md`, …) — everything else there is the project's. The full map is **`.gravity/ROUTER.md`**: navigate from its **Doc Map**, never guess paths. *(Pre-v3 projects carry the Doc Map in root `CLAUDE.md` instead — same sections, older home.)*
+This project organizes its documentation with **gravity**. *(Human reading this instead of an agent? Open **`.gravity/GRAVITY.html`** — the same protocol written for you, in a browser, with diagrams and a phrasebook of what to ask for; 한국어판은 `.gravity/GRAVITY.ko.html`. This card is the canon; those pages are the guide. They are copied and refreshed together.)*
+
+Two files auto-load from the project root — `CLAUDE.md` (identity, *how*) and `CONTEXT.md` (*now*) — and everything else lives under `.gravity/`, grouped **by subject domain**, not by doc-type. Gravity owns only the **fenced `<!-- gravity:router -->` block** in the root harness files (`CLAUDE.md`, `AGENTS.md`, …) — everything else there is the project's. The full map is **`.gravity/ROUTER.md`**: navigate from its **Doc Map**, never guess paths. *(Pre-v3 projects carry the Doc Map in root `CLAUDE.md` instead — same sections, older home.)*
 
 ## The doc kinds and their rates of change
 
@@ -13,6 +15,7 @@ This project organizes its documentation with **gravity**. Two files auto-load f
 | `.gravity/ROUTER.md` | **routing** — the Doc Map + what to read before changing what + the is-it-a-domain gate | when domains change |
 | `.gravity/<domain>/_given/` + `MANIFEST.md` | **received** — knowledge handed in from outside (quarry, never contract; disputes resolve against `raw/`) | when material arrives via `.gravity/_inbox/` |
 | `.gravity/ARCHITECTURE.html` | **how it's built** — the *map*: the Domain × Layer grid + the flows across it | on structural change |
+| `.gravity/_roadmap/ROADMAP.md` | **the plan sheet** — the business layer above the roadmap spine: URD-derived *chunks* with basis-tagged estimates; its one-way `active` transition mints tracks/slices just-in-time, and **a chunk never flips `active` while its `OPEN:` count is above zero** — that interval is the analysis-and-design phase, and each question resolves into a dated row of the sheet's Design-decisions ledger. Its stakeholder rendering is the **engagement book** beside it (`report-<slug>.html` — proposal + report tabs, calm standalone UI, delivered tabs frozen; a projection, never a source, where a `verified` badge requires a *named* proof — dated walkthrough, green gate run, witnessed demo — and otherwise reads `not yet verified`) | per URD cycle |
 | `.gravity/IMPLEMENTATION_PLAN.md` | **what/next** — roadmap spine + per-domain `✓/◑/○` status (+ optional **Tracks**, the direction axis) | per phase/slice |
 | root `CONTEXT.md` | **now** — current state + the single next step | every session |
 | `.gravity/<domain>/SPEC.md` | the **change contract** for this domain (agent-loadable) | when rules change |
@@ -20,13 +23,14 @@ This project organizes its documentation with **gravity**. Two files auto-load f
 | `.gravity/<domain>/PLAN.*.md` | the **intent of one change** — goal, scenario, slice, verification | per slice |
 | `docs/walkthroughs/<date>-<domain>-<slug>.md` | the **proof** — dated, append-only record of one shipped slice: what changed + the evidence it works (gate output, UI screenshots) | frozen at ship |
 | `docs/intake/<date>.md` | **received** — one verbatim bug-report batch, six facts per item (gaps as `OPEN:`, never plausibly filled) | per batch |
+| `.gravity/_roadmap/<date>-<slug>.md` | **received-future** — one agreed URD classified against the domain system (every field cited or `OPEN:`), plus the question list for the next user meeting | frozen when routed |
 
 Three disciplines bind them:
 - **One concern, one home.** Every fact has exactly one owner-doc; any other doc *links* to the owner instead of restating it. A fact written twice eventually drifts into two different facts.
 - **Touch the doc that matches the change's rate.** *now* → `CONTEXT.md` · *what/next* → the domain's `PLAN.*.md` · *rules* → `SPEC.md` · *how-it's-built* → `ARCHITECTURE.html` · *why* → `MISSION.html`. Never write *now* into MISSION or *why* into CONTEXT.
 - **One unit of work — the slice** (the smallest shippable change that passes the gate; its intent lives in a domain `PLAN.*.md`). Phases/queue (time), the status spine (domain), and Tracks (direction) are *indexes over slices* and hold no work themselves — a phase is just a slice with an ordinal.
 
-Two of those rows are one-way doors, not living docs. A **walkthrough** is written when a slice ships and then frozen — `CONTEXT.md`'s Completed bullet *links* to it rather than restating it; skip it for trivial fixes. An **intake sheet** holds received bug reports verbatim; each root cause routes out to a slice `PLAN.*.md` + a queue row — **bugs are never a domain** (no `.gravity/bugs/`, no standing registry), and a bug is just a currently-false scenario: its repro enters the slice PLAN as `given/when/then`, and the fix leaves the named regression test that graduates it.
+Three of those rows are one-way doors, not living docs. A **walkthrough** is written when a slice ships and then frozen — `CONTEXT.md`'s Completed bullet *links* to it rather than restating it; skip it for trivial fixes. An **intake sheet** holds received bug reports verbatim; each root cause routes out to a slice `PLAN.*.md` + a queue row — **bugs are never a domain** (no `.gravity/bugs/`, no standing registry), and a bug is just a currently-false scenario: its repro enters the slice PLAN as `given/when/then`, and the fix leaves the named regression test that graduates it. A **URD analysis sheet** is the future-facing mirror of intake: the agreed User Request Document itself is evidence in `_given/` (verbatim, frozen — it's an *agreement record*), the sheet classifies it into `ROADMAP.md` chunks, and a requirement is just a *desired-future* scenario entering the same maturation boundary a bug enters from the past — it becomes `given/when/then` in a slice PLAN only at its chunk's `active` transition (which mints the track/queue rows), and **chunks are never pre-cut into slices**.
 
 ## How to work here (the navigation discipline)
 
@@ -64,7 +68,7 @@ The page lands at **`.gravity/_observatory/index.html`** — seven tabs over one
 
 **Generated vs authored — the pair that must never be confused.** The observatory and the `ARCHITECTURE.html` pages share one visual language on purpose (a reader shouldn't learn two), but they have opposite provenance: the observatory is *generated, git-ignored, disposable*, while an ARCHITECTURE page is *authored, committed, and maintained by a human*. A page that reads as auto-derived is a page nobody maintains — so an authored page **stamps** `authored · last reviewed <date>` rather than letting the resemblance imply it. Its grid cells and flow steps carry `data-path="<file>"` anchors, and `check_project.py --only arch` asserts those files still exist (`ARCH_PATH_DEAD`, WARN). That wall catches a **moved or deleted file only** — it cannot tell you an arrow is now wrong or a branch was added and never drawn. Dead paths get a finding; everything else needs a human re-read.
 
-**A leading `_` marks gravity machinery, never a domain**: `_lib/`, `_observatory/`, `_inbox/` and `_given/` are the four sigiled `.gravity/` directories — machinery and evidence doors, so they carry no SPEC and are never wired into the indexes. The sigil is the rule: an agent minting a domain never needs the list, and no domain can collide with (or be mistaken for) the machinery.
+**A leading `_` marks gravity machinery, never a domain**: `_lib/`, `_observatory/`, `_inbox/`, `_given/` and `_roadmap/` are the five sigiled `.gravity/` directories — machinery, evidence doors and the plan sheet, so they carry no SPEC and are never wired into the indexes. The sigil is the rule: an agent minting a domain never needs the list, and no domain can collide with (or be mistaken for) the machinery. Provenance differs inside the family: `_observatory/` is generated and git-ignored; `_roadmap/` is *authored analysis* and committed, like `_given/`'s manifests.
 
 ## What never to do
 

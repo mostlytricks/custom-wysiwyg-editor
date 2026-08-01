@@ -95,12 +95,13 @@ def rule_kind(tag: str) -> str:
 
 # Top-level .gravity/ dirs that are never subject domains; check_project.py
 # holds the same set for its index checks. The v4 rule: a leading `_` marks
-# gravity machinery, never a domain. Two kinds:
+# gravity machinery, never a domain. Three kinds:
 #   evidence doors  (workspace CLAUDE.md §6) — the drop zone and the given layer
 #   machinery       — the installed protocol lib and its generated output, which
 #                     are tooling living in .gravity/, not subjects to document
+#   the plan sheet  — _roadmap/ (URD chunks + dated analyses): authored, committed
 # Pre-v4 bare names stay in the set so unmigrated dirs are never read as domains.
-NON_DOMAIN_DIRS = {"_inbox", "_given", "_lib", "_observatory",
+NON_DOMAIN_DIRS = {"_inbox", "_given", "_lib", "_observatory", "_roadmap",
                    "inbox", "given", "lib", "observatory"}
 
 
